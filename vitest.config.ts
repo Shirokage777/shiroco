@@ -2,7 +2,8 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  esbuild: { jsx: "automatic" },
+  // tsconfig keeps JSX for Next.js; tests compile it themselves.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname),
