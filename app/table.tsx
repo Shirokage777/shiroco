@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
 import type { Card } from "@/lib/types";
+import { flipOver } from "./flip";
 import { Symbol, SymbolText } from "./symbol-text";
 import styles from "./table.module.css";
-
-const FLIP_MS = 350; // keep in step with the flip animations in table.module.css
 
 // The card table: set up a game, then draw. Before a card is triggered only its trigger shows.
 export default function Table() {
@@ -16,19 +15,18 @@ export default function Table() {
   const [game, setGame] = useState<GameState | null>(null);
   const [askNewGame, setAskNewGame] = useState(false);
   const [flipping, setFlipping] = useState(false);
+  const noteRef = useRef<HTMLElement>(null);
 
-  // Triggered: the folded note first flips over to its back (FLIP_MS), then unfolds (CSS).
+  // Triggered: the folded note is first turned over, bending as it goes (flip.ts), then it unfolds (CSS).
   function trigger() {
+    const showCard = () => setGame((g) => (g ? reveal(g) : g));
     if (flipping) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setGame((g) => (g ? reveal(g) : g));
-      return;
-    }
+    if (!noteRef.current || matchMedia("(prefers-reduced-motion: reduce)").matches) return showCard();
     setFlipping(true);
-    setTimeout(() => {
-      setGame((g) => (g ? reveal(g) : g));
+    flipOver(noteRef.current, styles.paper, () => {
+      showCard();
       setFlipping(false);
-    }, FLIP_MS);
+    });
   }
 
   useEffect(() => {
@@ -91,7 +89,7 @@ export default function Table() {
       )}
 
       {card && (
-        <div className={`${styles.pin} ${styles.clipped} ${flipping ? styles.flipOut : ""} ${game.revealed ? styles.flipIn : ""}`}>
+        <div className={`${styles.pin} ${styles.clipped}`}>
         {/* When triggered, the note unfolds three times (1/8 → 1/4 → 1/2 → full):
             the card is revealed step by step while a paper flap swings down at each fold. */}
         {game.revealed && (
@@ -103,6 +101,7 @@ export default function Table() {
         )}
         <article
           key={game.revealed ? "open" : "folded"}
+          ref={game.revealed ? undefined : noteRef}
           className={`${styles.card} ${styles.paper} ${game.revealed ? styles.unfold : ""}`}
           aria-live="polite"
         >
