@@ -11,6 +11,7 @@ export default function Table() {
   const [failed, setFailed] = useState(false);
   const [options, setOptions] = useState<GameOptions>({ leaveOutMature: false, coop: false });
   const [game, setGame] = useState<GameState | null>(null);
+  const [askNewGame, setAskNewGame] = useState(false);
 
   useEffect(() => {
     fetch("/api/cards")
@@ -45,10 +46,21 @@ export default function Table() {
     <section className={styles.table}>
       <header className={styles.status}>
         <span>{game.draw.length} in deck · {game.discard.length} discarded</span>
-        <button className={styles.link} onClick={() => confirm("Start a new game? The deck is reshuffled.") && setGame(null)}>
-          New game
-        </button>
+        {!askNewGame && (
+          <button className={styles.link} onClick={() => setAskNewGame(true)}>
+            New game
+          </button>
+        )}
       </header>
+
+      {/* Asked on the page, not with a browser pop-up: some browsers block or auto-cancel pop-ups. */}
+      {askNewGame && (
+        <div className={styles.ask} role="alertdialog" aria-label="Start a new game?">
+          <span>Start a new game? The deck is reshuffled.</span>
+          <button className={styles.primary} onClick={() => { setAskNewGame(false); setGame(null); }}>Yes, new game</button>
+          <button onClick={() => setAskNewGame(false)}>Cancel</button>
+        </div>
+      )}
 
       {!card && (
         <button className={styles.primary} onClick={() => setGame(drawCard(game))}>

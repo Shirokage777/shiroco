@@ -99,6 +99,14 @@
   font-size: 14px;
 }
 
+.ask {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--foreground);
+}
+
 .note {
   opacity: 0.8;
 }
