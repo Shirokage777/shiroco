@@ -1,48 +1,88 @@
 .setup,
 .table {
   display: grid;
-  gap: 16px;
-  width: min(560px, 100%);
+  gap: 18px;
+  width: min(600px, 100%);
+}
+
+/* Setup: a clipboard notice */
+.setup {
+  padding: 22px 20px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  box-shadow: 0 6px 18px #0007;
 }
 
 .setup label {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 .setup input {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--rust);
+  flex: none;
 }
 
 .status {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  opacity: 0.8;
+  font-family: var(--font-stamp), monospace;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--chalk-dim);
+  text-transform: uppercase;
 }
 
+/* The card: a notice clipped to the bunker wall */
 .card {
+  position: relative;
   display: grid;
   gap: 14px;
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #8884;
-  line-height: 1.5;
+  padding: 28px 20px 22px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper-edge);
+  border-radius: 3px;
+  box-shadow: 0 8px 22px #0008;
+  line-height: 1.55;
+  font-size: 17px;
+  transform: rotate(-0.4deg);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 64px;
+  height: 18px;
+  margin-left: -32px;
+  background: #8d8b85;
+  border: 1px solid #5f5d58;
+  border-radius: 3px;
+  box-shadow: 0 2px 3px #0006;
 }
 
 .card h2 {
-  font-size: 22px;
+  font-family: var(--font-stamp), monospace;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--rust-dark);
 }
 
 .trigger {
   font-style: italic;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .actions,
@@ -54,10 +94,10 @@
 .setup button,
 .table button {
   font: inherit;
-  font-size: 16px;
+  font-size: 17px;
   padding: 12px 14px;
-  border-radius: 8px;
-  border: 1px solid #8886;
+  border-radius: 4px;
+  border: 1px solid var(--rust);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -66,10 +106,22 @@
 
 .setup .primary,
 .table .primary {
-  background: var(--foreground);
-  color: var(--background);
+  font-family: var(--font-stamp), monospace;
+  background: var(--rust);
+  border-color: var(--rust-dark);
+  color: #f1e9dc;
   text-align: center;
-  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 19px;
+  padding: 14px;
+  box-shadow: 0 3px 0 var(--rust-dark);
+}
+
+.setup .primary:active,
+.table .primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--rust-dark);
 }
 
 .option,
@@ -79,13 +131,23 @@
   gap: 4px;
 }
 
+.option strong,
+.chosen strong,
+.dimmed strong {
+  font-family: var(--font-stamp), monospace;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--rust-dark);
+}
+
 .table .chosen {
-  border-color: var(--foreground);
-  border-width: 2px;
+  background: #c9bfae;
+  border: 2px solid var(--rust-dark);
 }
 
 .table .dimmed {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
 .table button:disabled {
@@ -96,17 +158,31 @@
   border: none;
   padding: 4px 0;
   text-decoration: underline;
-  font-size: 14px;
+  font-size: 15px;
+  color: var(--chalk);
 }
 
 .ask {
   display: grid;
   gap: 10px;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--foreground);
+  padding: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--hazard);
+  border-radius: 4px;
 }
 
 .note {
-  opacity: 0.8;
+  color: var(--chalk-dim);
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: 36px 32px 28px;
+    font-size: 18px;
+  }
+
+  .card h2 {
+    font-size: 30px;
+  }
 }
