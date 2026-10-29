@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "npm run cards && vitest run",
-    "cards": "node --env-file-if-exists=.env.local scripts/fetch-cards.mjs"
+    "cards": "node --env-file-if-exists=.env.local scripts/fetch-cards.mjs",
+    "add-user": "node scripts/add-user.mjs"
   },
   "dependencies": {
     "next": "15.5.28",

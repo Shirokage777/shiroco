@@ -27,15 +27,31 @@ Before every `dev`, `test` and `build`, `scripts/fetch-cards.mjs` copies the dec
 
 On Vercel, option 2 is required: the build stops if it is not set, so a deploy never ships the example cards by mistake.
 
+## Accounts
+
+Nothing is shown before login. Each person gets a name and password; only a salted scrypt hash is stored.
+
+```bash
+npm run add-user -- <name>
+```
+
+It asks for the password twice (hidden) and writes the hash to `~/.config/crossroads-companion/users` (or `APP_USERS_FILE`). Sessions are signed with a random secret of at least 32 characters.
+
+| Variable | Local (`.env.local`) | Vercel |
+|---|---|---|
+| Accounts | `APP_USERS_FILE=<path to users file>` | `APP_USERS` = the file's content |
+| Session secret | `SESSION_SECRET_FILE=<path to secret file>` | `SESSION_SECRET` |
+
 ## Deploy on Vercel
 
 1. Import this repo in Vercel.
-2. Add the environment variables `CARDS_REPO` and `CARDS_REPO_TOKEN` (Production and Preview).
+2. Add the environment variables `CARDS_REPO`, `CARDS_REPO_TOKEN`, `SESSION_SECRET` and `APP_USERS` (Production and Preview).
 3. Deploy. The build runs the tests first; a failing test stops the deploy.
 
 ## Privacy
 
-- Card data is bundled into server code only and never served as a public file.
+- Without a valid session every page redirects to the login and every API answers 401; the login page names nothing about the game.
+- Card data is bundled into server code only, served only by `/api/cards` to logged-in users, and never as a public file.
 - Every page is `noindex, nofollow` (meta tag and `X-Robots-Tag` header), and `robots.txt` disallows everything.
 - Page titles name nothing about the game.
 - The tests check all of this, including that no real card text sits in any file git would commit.
