@@ -25,7 +25,8 @@ export default function Table() {
 
   if (!game) {
     return (
-      <section className={styles.setup}>
+      <div className={styles.pin}>
+      <section className={`${styles.setup} ${styles.paper}`}>
         <label>
           <input type="checkbox" checked={options.leaveOutMature} onChange={(e) => setOptions({ ...options, leaveOutMature: e.target.checked })} />
           Leave out mature cards
@@ -38,6 +39,7 @@ export default function Table() {
           Start game · {playable(cards, options).length} cards
         </button>
       </section>
+      </div>
     );
   }
 
@@ -47,7 +49,7 @@ export default function Table() {
       <header className={styles.status}>
         <span>{game.draw.length} in deck · {game.discard.length} discarded</span>
         {!askNewGame && (
-          <button className={styles.link} onClick={() => setAskNewGame(true)}>
+          <button className={styles.secondary} onClick={() => setAskNewGame(true)}>
             New game
           </button>
         )}
@@ -55,10 +57,12 @@ export default function Table() {
 
       {/* Asked on the page, not with a browser pop-up: some browsers block or auto-cancel pop-ups. */}
       {askNewGame && (
-        <div className={styles.ask} role="alertdialog" aria-label="Start a new game?">
-          <span>Start a new game? The deck will be reshuffled.</span>
-          <button className={styles.primary} onClick={() => { setAskNewGame(false); setGame(null); }}>Yes, new game</button>
-          <button onClick={() => setAskNewGame(false)}>Cancel</button>
+        <div className={styles.pin}>
+          <div className={`${styles.ask} ${styles.paper}`} role="alertdialog" aria-label="Start a new game?">
+            <span>Start a new game? The deck will be reshuffled.</span>
+            <button className={styles.primary} onClick={() => { setAskNewGame(false); setGame(null); }}>Yes, new game</button>
+            <button className={styles.secondary} onClick={() => setAskNewGame(false)}>Cancel</button>
+          </div>
         </div>
       )}
 
@@ -69,7 +73,8 @@ export default function Table() {
       )}
 
       {card && (
-        <article className={styles.card} aria-live="polite">
+        <div className={`${styles.pin} ${styles.clipped}`}>
+        <article className={`${styles.card} ${styles.paper}`} aria-live="polite">
           {game.revealed && <h2>{card.title}</h2>}
           <p className={styles.trigger}>{card.trigger}</p>
 
@@ -102,6 +107,7 @@ export default function Table() {
             </>
           )}
         </article>
+        </div>
       )}
     </section>
   );
