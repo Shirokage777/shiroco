@@ -67,7 +67,10 @@ export function reveal(state: GameState): GameState {
   return state.current ? { ...state, revealed: true } : state;
 }
 
+// Picks an option. Players may change their mind: picking another option switches to it,
+// picking the chosen one again takes the choice back.
 export function choose(state: GameState, index: number): GameState {
   const valid = state.current && state.revealed && index >= 0 && index < state.current.options.length;
-  return valid ? { ...state, chosen: index } : state;
+  if (!valid) return state;
+  return { ...state, chosen: state.chosen === index ? null : index };
 }

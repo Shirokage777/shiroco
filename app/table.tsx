@@ -115,7 +115,7 @@ export default function Table() {
                     key={i}
                     className={game.chosen === null ? styles.option : game.chosen === i ? styles.chosen : styles.dimmed}
                     onClick={() => setGame(choose(game, i))}
-                    disabled={game.chosen !== null}
+                    aria-pressed={game.chosen === i}
                   >
                     <strong>{option.label}</strong>
                     <span><SymbolText text={option.text} /></span>
@@ -123,7 +123,10 @@ export default function Table() {
                 ))}
               </div>
               {game.chosen !== null && (
-                <button className={styles.primary} onClick={() => setGame(discardCurrent(game))}>Done</button>
+                <>
+                  <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
+                  <button className={styles.primary} onClick={() => setGame(discardCurrent(game))}>Done</button>
+                </>
               )}
             </>
           )}

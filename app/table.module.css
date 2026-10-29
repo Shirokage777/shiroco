@@ -201,6 +201,15 @@
   opacity: 0.4;
 }
 
+.table .dimmed:hover {
+  opacity: 0.75;
+}
+
+.hint {
+  font-size: 14px;
+  font-style: italic;
+}
+
 .table button:disabled {
   cursor: default;
 }

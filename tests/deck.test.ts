@@ -91,6 +91,17 @@ describe("draw cycle", () => {
     expect(choose(game, 5).chosen).toBe(1); // out of range is ignored
   });
 
+  it("lets players change their mind about an option", () => {
+    let game = choose(reveal(drawCard(newGame(deck, all))), 0);
+    expect(game.chosen).toBe(0);
+    game = choose(game, 1); // switch to the other option
+    expect(game.chosen).toBe(1);
+    game = choose(game, 1); // tap the chosen one again: undo
+    expect(game.chosen).toBeNull();
+    game = choose(game, 0); // and pick again
+    expect(game.chosen).toBe(0);
+  });
+
   it("starts a fresh shuffled game with the chosen filters", () => {
     const game = newGame(deck, { leaveOutMature: true, coop: true });
     expect(ids(game.draw)).toEqual(["a", "e"]);
