@@ -56,7 +56,7 @@ export default function Table() {
       {/* Asked on the page, not with a browser pop-up: some browsers block or auto-cancel pop-ups. */}
       {askNewGame && (
         <div className={styles.ask} role="alertdialog" aria-label="Start a new game?">
-          <span>Start a new game? The deck is reshuffled.</span>
+          <span>Start a new game? The deck will be reshuffled.</span>
           <button className={styles.primary} onClick={() => { setAskNewGame(false); setGame(null); }}>Yes, new game</button>
           <button onClick={() => setAskNewGame(false)}>Cancel</button>
         </div>
