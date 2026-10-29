@@ -39,6 +39,12 @@
   cursor: pointer;
   background: #e4e1d8;
   color: #2c2c2a;
+  box-shadow: 0 3px 0 #0000008c;
+}
+
+.form button:active {
+  transform: translateY(2px);
+  box-shadow: none;
 }
 
 .form button:disabled {

@@ -138,6 +138,14 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
+  /* Every button sits slightly raised and sinks in while pressed (see :active below). */
+  box-shadow: 0 3px 0 #6e351966;
+}
+
+.setup button:active,
+.table button:active {
+  transform: translateY(2px);
+  box-shadow: none;
 }
 
 /* Stamped buttons: rust for the main action, gray for the rest. */
@@ -170,7 +178,8 @@
 
 .setup .primary:active,
 .table .primary:active,
-.table .secondary:active {
+.table .secondary:active,
+.table .quiet:active {
   transform: translateY(2px);
   box-shadow: none;
 }
@@ -217,6 +226,7 @@
 .ask {
   display: grid;
   gap: 10px;
+  font-size: 17px;
   padding: 18px;
 }
 
@@ -251,7 +261,7 @@
    flap (the paper's back) swings down from each fold line. Clip insets are negative
    at the sides so the frayed edges are never cut. */
 .unfold {
-  animation: unfold 1.5s linear both;
+  animation: unfold 1.5s linear 0.35s both; /* starts after the flip-in */
 }
 
 @keyframes unfold {
@@ -286,18 +296,20 @@
 .flap1 {
   top: 12.5%;
   height: 12.5%;
+  animation-delay: 0.35s;
+  animation-fill-mode: both; /* lies folded over the packet while it flips in */
 }
 
 .flap2 {
   top: 25%;
   height: 25%;
-  animation-delay: 0.5s;
+  animation-delay: 0.85s;
 }
 
 .flap3 {
   top: 50%;
   height: 50%;
-  animation-delay: 1s;
+  animation-delay: 1.35s;
 }
 
 @keyframes flap {
@@ -319,7 +331,40 @@
   }
 }
 
+/* Triggered: the folded note turns over (front edge-on, then its back comes round)
+   before it unfolds. Two halves, because the content swaps at the edge-on moment. */
+.flipOut {
+  animation: flipOut 0.35s ease-in forwards;
+}
+
+.flipIn {
+  animation: flipIn 0.35s ease-out;
+}
+
+@keyframes flipOut {
+  from {
+    transform: perspective(900px) rotate(-0.5deg) rotateY(0deg);
+  }
+  to {
+    transform: perspective(900px) rotate(-0.5deg) rotateY(90deg);
+  }
+}
+
+@keyframes flipIn {
+  from {
+    transform: perspective(900px) rotate(-0.5deg) rotateY(-90deg);
+  }
+  to {
+    transform: perspective(900px) rotate(-0.5deg) rotateY(0deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .flipIn,
+  .flipOut {
+    animation: none;
+  }
+
   .unfold {
     animation: none;
   }

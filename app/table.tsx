@@ -6,6 +6,8 @@ import type { Card } from "@/lib/types";
 import { Symbol, SymbolText } from "./symbol-text";
 import styles from "./table.module.css";
 
+const FLIP_MS = 350; // keep in step with the flip animations in table.module.css
+
 // The card table: set up a game, then draw. Before a card is triggered only its trigger shows.
 export default function Table() {
   const [cards, setCards] = useState<Card[] | null>(null);
@@ -13,6 +15,21 @@ export default function Table() {
   const [options, setOptions] = useState<GameOptions>({ leaveOutMature: false, coop: false });
   const [game, setGame] = useState<GameState | null>(null);
   const [askNewGame, setAskNewGame] = useState(false);
+  const [flipping, setFlipping] = useState(false);
+
+  // Triggered: the folded note first flips over to its back (FLIP_MS), then unfolds (CSS).
+  function trigger() {
+    if (flipping) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setGame((g) => (g ? reveal(g) : g));
+      return;
+    }
+    setFlipping(true);
+    setTimeout(() => {
+      setGame((g) => (g ? reveal(g) : g));
+      setFlipping(false);
+    }, FLIP_MS);
+  }
 
   useEffect(() => {
     fetch("/api/cards")
@@ -74,7 +91,7 @@ export default function Table() {
       )}
 
       {card && (
-        <div className={`${styles.pin} ${styles.clipped}`}>
+        <div className={`${styles.pin} ${styles.clipped} ${flipping ? styles.flipOut : ""} ${game.revealed ? styles.flipIn : ""}`}>
         {/* When triggered, the note unfolds three times (1/8 → 1/4 → 1/2 → full):
             the card is revealed step by step while a paper flap swings down at each fold. */}
         {game.revealed && (
@@ -101,7 +118,7 @@ export default function Table() {
 
           {!game.revealed && (
             <div className={styles.actions}>
-              <button className={styles.primary} onClick={() => setGame(reveal(game))}>Triggered</button>
+              <button className={styles.primary} onClick={trigger}>Triggered</button>
               <button className={styles.quiet} onClick={() => setGame(discardCurrent(game))}>Not Triggered</button>
             </div>
           )}
