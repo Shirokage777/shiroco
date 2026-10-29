@@ -27,6 +27,8 @@ Before every `dev`, `test` and `build`, `scripts/fetch-cards.mjs` copies the dec
 
 On Vercel, option 2 is required: the build stops if it is not set, so a deploy never ships the example cards by mistake.
 
+**Printed symbols.** Card text can mark a printed game symbol as `{name}`, e.g. `{weapon}`. Put a matching `name.png` (e.g. a crop from a photo of your own card) in a `symbols` folder next to your `cards` folder, or `CARDS_SYMBOLS_PATH` in the private repo. The build copies them to `data/symbols/` (git-ignored) and the app serves them only after login. The corner marks use `mature.png` and `no-coop.png`. Without an image the app shows the symbol's name as a word.
+
 ## Accounts
 
 Nothing is shown before login. Each person gets a name and password; only a salted scrypt hash is stored.
