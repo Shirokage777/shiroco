@@ -337,21 +337,58 @@
   padding: 30px 22px;
 }
 
-/* Done: the unfold played backwards. The big flap swings up first, the small one last. */
+/* Done: the unfold backwards. The big flap swings up first, the small one last.
+   These need keyframes of their own: reusing "unfold"/"flap" with direction: reverse
+   would not restart the finished animations, and the card would just jump shut. */
 .refold {
-  animation: unfold 1.5s linear reverse both;
+  animation: refold 1.5s linear both;
+}
+
+@keyframes refold {
+  0%,
+  33% {
+    clip-path: inset(-24px -24px 50% -24px);
+  }
+  33.1%,
+  66% {
+    clip-path: inset(-24px -24px 75% -24px);
+  }
+  66.1%,
+  100% {
+    clip-path: inset(-24px -24px 87.5% -24px);
+  }
+}
+
+.refolding .flap {
+  animation: flapBack 0.5s ease-in-out forwards;
 }
 
 .refolding .flap1 {
-  animation: flap 0.5s ease-in-out 1s reverse both;
+  animation-delay: 1s;
 }
 
 .refolding .flap2 {
-  animation: flap 0.5s ease-in-out 0.5s reverse both;
+  animation-delay: 0.5s;
 }
 
 .refolding .flap3 {
-  animation: flap 0.5s ease-in-out 0s reverse both;
+  animation-delay: 0s;
+}
+
+@keyframes flapBack {
+  0% {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(0deg);
+    filter: url(#torn-paper) brightness(1);
+  }
+  50% {
+    filter: url(#torn-paper) brightness(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(178deg);
+    filter: url(#torn-paper) brightness(1);
+  }
 }
 
 /* While the folded packet is turned over, a plain stand-in sheet takes its place. */
