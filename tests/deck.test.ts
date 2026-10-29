@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { choose, discardCurrent, drawCard, newGame, playable, reveal, shuffle, symbols, type GameOptions } from "@/lib/deck";
+import { choose, discardCurrent, drawCard, newGame, playable, reveal, shuffle, splitSymbols, type GameOptions } from "@/lib/deck";
 import type { Card } from "@/lib/types";
 
 const card = (id: string, extra: Partial<Card> = {}): Card => ({
@@ -99,8 +99,12 @@ describe("draw cycle", () => {
 });
 
 describe("card text", () => {
-  it("shows printed symbols as plain words", () => {
-    expect(symbols("If the player uses a {weapon} item card:")).toBe("If the player uses a weapon item card:");
-    expect(symbols("No symbols here.")).toBe("No symbols here.");
+  it("splits out printed symbols so they can be drawn", () => {
+    expect(splitSymbols("If the player uses a {weapon} item card:")).toEqual([
+      { text: "If the player uses a " },
+      { symbol: "weapon" },
+      { text: " item card:" },
+    ]);
+    expect(splitSymbols("No symbols here.")).toEqual([{ text: "No symbols here." }]);
   });
 });

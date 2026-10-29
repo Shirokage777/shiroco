@@ -42,3 +42,4 @@ next-env.d.ts
 
 # card data (copyrighted, never committed)
 /data/cards.json
+/data/symbols/

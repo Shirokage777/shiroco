@@ -16,9 +16,14 @@ export type Random = () => number; // [0, 1)
 
 export const cryptoRandom: Random = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 
-// Cards mark printed game symbols like {weapon}; show them as plain words.
-export function symbols(text: string): string {
-  return text.replace(/\{(\w+)\}/g, "$1");
+// Cards mark printed game symbols like {weapon}. Split the text so the symbols can be drawn.
+export type TextPart = { text: string } | { symbol: string };
+
+export function splitSymbols(text: string): TextPart[] {
+  return text
+    .split(/(\{[a-z0-9-]+\})/)
+    .filter(Boolean)
+    .map((part) => (/^\{[a-z0-9-]+\}$/.test(part) ? { symbol: part.slice(1, -1) } : { text: part }));
 }
 
 export function playable(cards: Card[], options: GameOptions): Card[] {

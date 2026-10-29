@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { middleware } from "@/middleware";
@@ -104,6 +104,21 @@ describe("login and card endpoints", () => {
     const res = await login("sean", "wrong password");
     expect(res.status).toBe(401);
     expect(res.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("serves the printed symbols only with a valid session, and only real names", async () => {
+    const { GET } = await import("@/app/api/symbols/[name]/route");
+    const ask = (name: string) => GET(new Request(`http://localhost/api/symbols/${name}`), { params: Promise.resolve({ name }) });
+    expect((await ask("weapon")).status).toBe(401);
+    cookieValue = await createSession("sean", SECRET);
+    expect((await ask("..%2Fcards")).status).toBe(404);
+    expect((await ask("no-such-symbol")).status).toBe(404);
+    if (existsSync("data/symbols/weapon.png")) {
+      const res = await ask("weapon");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      expect(res.headers.get("cache-control")).toMatch(/private/);
+    }
   });
 
   it("serves the cards only with a valid session", async () => {

@@ -101,7 +101,7 @@
 .card {
   display: grid;
   gap: 14px;
-  padding: 30px 22px 24px;
+  padding: 30px 22px 40px;
   line-height: 1.55;
   font-size: 17px;
 }
@@ -217,7 +217,7 @@
 
 @media (min-width: 768px) {
   .card {
-    padding: 38px 34px 30px;
+    padding: 38px 34px 46px;
     font-size: 18px;
   }
 
@@ -318,4 +318,31 @@
   .flap {
     display: none;
   }
+}
+
+/* Printed symbols from the real cards. In text they sit on the line like a word. */
+.symbol {
+  height: 1.15em;
+  width: auto;
+  vertical-align: -0.2em;
+  margin: 0 0.1em;
+}
+
+.symbolWord {
+  font-style: normal;
+  text-transform: uppercase;
+  font-size: 0.85em;
+}
+
+.marks {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.mark {
+  height: 22px;
+  width: auto;
 }

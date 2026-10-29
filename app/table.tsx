@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { choose, discardCurrent, drawCard, newGame, playable, reveal, symbols, type GameOptions, type GameState } from "@/lib/deck";
+import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
 import type { Card } from "@/lib/types";
+import { Symbol, SymbolText } from "./symbol-text";
 import styles from "./table.module.css";
 
 // The card table: set up a game, then draw. Before a card is triggered only its trigger shows.
@@ -88,8 +89,15 @@ export default function Table() {
           className={`${styles.card} ${styles.paper} ${game.revealed ? styles.unfold : ""}`}
           aria-live="polite"
         >
+          {/* The corner marks of the real card: mature and not used in co-op. */}
+          {(card.mature || card.noCoop) && (
+            <div className={styles.marks}>
+              {card.mature && <Symbol name="mature" className={styles.mark} />}
+              {card.noCoop && <Symbol name="no-coop" className={styles.mark} />}
+            </div>
+          )}
           {game.revealed && <h2>{card.title}</h2>}
-          <p className={styles.trigger}>{symbols(card.trigger)}</p>
+          <p className={styles.trigger}><SymbolText text={card.trigger} /></p>
 
           {!game.revealed && (
             <div className={styles.actions}>
@@ -100,7 +108,7 @@ export default function Table() {
 
           {game.revealed && (
             <>
-              <p>{symbols(card.text)}</p>
+              <p><SymbolText text={card.text} /></p>
               <div className={styles.options}>
                 {card.options.map((option, i) => (
                   <button
@@ -110,7 +118,7 @@ export default function Table() {
                     disabled={game.chosen !== null}
                   >
                     <strong>{option.label}</strong>
-                    <span>{symbols(option.text)}</span>
+                    <span><SymbolText text={option.text} /></span>
                   </button>
                 ))}
               </div>

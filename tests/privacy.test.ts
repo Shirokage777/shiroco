@@ -10,8 +10,14 @@ const repoFiles = () =>
   execSync("git ls-files --cached --others --exclude-standard", { encoding: "utf8" }).split("\n").filter((f) => f && existsSync(f));
 
 describe("card data stays private", () => {
-  it("keeps the fetched deck out of git", () => {
+  it("keeps the fetched deck and symbols out of git", () => {
     expect(() => execSync("git check-ignore -q data/cards.json")).not.toThrow();
+    expect(() => execSync("git check-ignore -q data/symbols/weapon.png")).not.toThrow();
+  });
+
+  it("has no image of the game in any file that would be committed", () => {
+    const images = repoFiles().filter((f) => /\.(png|jpe?g|webp|gif|heic)$/i.test(f));
+    expect(images).toEqual([]);
   });
 
   it("has no real card text in any file that would be committed", () => {
