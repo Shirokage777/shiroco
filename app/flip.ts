@@ -4,14 +4,17 @@
 // line in both directions. The whole sheet turns about the centre line; meanwhile every hinge
 // bends a little, so the sheet bows into a curve mid-turn and flattens again at the end.
 // Because neighbouring panels share their edge, the sheet stays closed: no gaps.
-// Each panel has a front (a slice of the note) and a back (blank paper), so the back
-// comes round on its own as the sheet turns.
+//
+// flipOver   front to back in one go (the back is blank paper)
+// turnAway   front to edge-on: the note leaves; the caller then swaps what is shown
+// turnIn     edge-on to front: the newly shown note arrives, finishing the turn
 
 const PANELS_PER_SIDE = 6;
 const TURN_MS = 700;
-const BEND_DEG = 7; // extra bend per hinge at mid-turn
+const BEND_DEG = 7; // bend per hinge at its strongest
+const EASE = "cubic-bezier(0.45, 0, 0.35, 1)";
 
-const timing: KeyframeAnimationOptions = { duration: TURN_MS, easing: "cubic-bezier(0.45, 0, 0.35, 1)", fill: "forwards" };
+type Step = { angle: number; bend: number; light: number };
 
 // One side of a panel, showing the slice of `content` that lies under the panel.
 function face(content: HTMLElement, offsetX: number, slice: number, width: number, height: number, back: boolean) {
@@ -27,17 +30,17 @@ function face(content: HTMLElement, offsetX: number, slice: number, width: numbe
   const sliceX = back ? width - offsetX - slice : offsetX;
   Object.assign(content.style, { position: "absolute", left: `${-sliceX}px`, top: "0", width: `${width}px`, height: `${height}px`, margin: "0", animation: "none" });
   el.append(content);
-  // Paper turned away from the light darkens a little.
-  el.animate([{ filter: "brightness(1)" }, { filter: "brightness(0.75)" }, { filter: "brightness(1)" }], timing);
   return el;
 }
 
-export function flipOver(note: HTMLElement, paperClass: string, done: () => void) {
+// Builds the sheet over `note`, hides the note, plays the steps, then calls `done`.
+function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, backClass: string | null, done: () => void) {
   const host = note.parentElement;
   if (!host) return done();
   const width = note.offsetWidth;
   const height = note.offsetHeight;
   const slice = width / (2 * PANELS_PER_SIDE);
+  const timing: KeyframeAnimationOptions = { duration: ms, easing, fill: "forwards" };
 
   const layer = document.createElement("div");
   layer.setAttribute("aria-hidden", "true");
@@ -73,17 +76,24 @@ export function flipOver(note: HTMLElement, paperClass: string, done: () => void
         transformOrigin: side === 1 ? "0 50%" : "100% 50%",
       });
       const offsetX = side === 1 ? width / 2 + k * slice : width / 2 - (k + 1) * slice;
-      const back = document.createElement("div");
-      back.className = paperClass;
-      panel.append(face(note.cloneNode(true) as HTMLElement, offsetX, slice, width, height, false), face(back, offsetX, slice, width, height, true));
-      // Every hinge bends the same way, so the sheet bows into one smooth curve and back.
-      panel.animate([{ transform: "rotateY(0deg)" }, { transform: `rotateY(${side * BEND_DEG}deg)` }, { transform: "rotateY(0deg)" }], timing);
+      const faces = [face(note.cloneNode(true) as HTMLElement, offsetX, slice, width, height, false)];
+      if (backClass) {
+        const back = document.createElement("div");
+        back.className = backClass;
+        faces.push(face(back, offsetX, slice, width, height, true));
+      }
+      for (const f of faces) {
+        // Paper turned away from the light darkens a little.
+        f.animate(steps.map((s) => ({ filter: `brightness(${s.light})` })), timing);
+        panel.append(f);
+      }
+      // Every hinge bends the same way, so the sheet bows into one smooth curve.
+      panel.animate(steps.map((s) => ({ transform: `rotateY(${side * BEND_DEG * s.bend}deg)` })), timing);
       parent.append(panel);
       parent = panel;
     }
   }
-
-  spine.animate([{ transform: "rotateY(0deg)" }, { transform: "rotateY(-180deg)" }], timing);
+  spine.animate(steps.map((s) => ({ transform: `rotateY(${s.angle}deg)` })), timing);
 
   note.style.visibility = "hidden";
   host.append(layer);
@@ -91,5 +101,30 @@ export function flipOver(note: HTMLElement, paperClass: string, done: () => void
     done();
     layer.remove();
     note.style.visibility = "";
-  }, TURN_MS + 30);
+  }, ms + 30);
+}
+
+export function flipOver(note: HTMLElement, paperClass: string, done: () => void) {
+  const steps = [
+    { angle: 0, bend: 0, light: 1 },
+    { angle: -90, bend: 1, light: 0.75 },
+    { angle: -180, bend: 0, light: 1 },
+  ];
+  turn(note, steps, TURN_MS, EASE, paperClass, done);
+}
+
+export function turnAway(note: HTMLElement, done: () => void) {
+  const steps = [
+    { angle: 0, bend: 0, light: 1 },
+    { angle: -90, bend: 1, light: 0.75 },
+  ];
+  turn(note, steps, TURN_MS / 2, "ease-in", null, done);
+}
+
+export function turnIn(note: HTMLElement, done: () => void = () => {}) {
+  const steps = [
+    { angle: 90, bend: 1, light: 0.75 },
+    { angle: 0, bend: 0, light: 1 },
+  ];
+  turn(note, steps, TURN_MS / 2, "ease-out", null, done);
 }

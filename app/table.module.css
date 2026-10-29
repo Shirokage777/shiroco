@@ -331,6 +331,35 @@
   }
 }
 
+/* The draw note: a small note holding only the Draw card button. */
+.drawNote {
+  display: grid;
+  padding: 30px 22px;
+}
+
+/* Done: the unfold played backwards. The big flap swings up first, the small one last. */
+.refold {
+  animation: unfold 1.5s linear reverse both;
+}
+
+.refolding .flap1 {
+  animation: flap 0.5s ease-in-out 1s reverse both;
+}
+
+.refolding .flap2 {
+  animation: flap 0.5s ease-in-out 0.5s reverse both;
+}
+
+.refolding .flap3 {
+  animation: flap 0.5s ease-in-out 0s reverse both;
+}
+
+/* While the folded packet is turned over, a plain stand-in sheet takes its place. */
+.folded > article,
+.folded > .flap {
+  visibility: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .unfold {
     animation: none;
