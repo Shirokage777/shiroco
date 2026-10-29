@@ -37,25 +37,11 @@
   color: var(--ink);
 }
 
-.paper::before,
-.paper::after {
+.paper::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-}
-
-.paper::after {
-  /* Punched perforations down the left edge (torn out of a notebook) and two small
-     worn-through holes near the right edge. They are painted in the wall colour with a
-     dark rim rather than cut out, because a mask would also trim the frayed edge. */
-  background-image:
-    radial-gradient(circle 4.5px at 12px 12px, #2f2f2c 0 3.6px, #1f170c99 4.5px, transparent 5.5px),
-    radial-gradient(circle 3px at calc(100% - 13px) 34%, #2f2f2c 0 2.4px, #1f170c99 3px, transparent 4px),
-    radial-gradient(circle 2px at calc(100% - 9px) 71%, #2f2f2c 0 1.6px, #1f170c99 2px, transparent 3px);
-  background-size: 24px 24px, 100% 100%, 100% 100%;
-  background-position: 0 10px, 0 0, 0 0;
-  background-repeat: repeat-y, no-repeat, no-repeat;
 }
 
 /* The paper look, shared by the notes and the unfolding flaps. */
@@ -82,7 +68,7 @@
 
 /* Setup: a clipboard notice */
 .setup {
-  padding: 24px 22px 24px 32px;
+  padding: 24px 22px;
 }
 
 .setup label {
@@ -115,7 +101,7 @@
 .card {
   display: grid;
   gap: 14px;
-  padding: 30px 22px 24px 32px;
+  padding: 30px 22px 24px;
   line-height: 1.55;
   font-size: 17px;
 }
@@ -222,7 +208,7 @@
 .ask {
   display: grid;
   gap: 10px;
-  padding: 18px 18px 18px 32px;
+  padding: 18px;
 }
 
 .note {
@@ -231,7 +217,7 @@
 
 @media (min-width: 768px) {
   .card {
-    padding: 38px 34px 30px 42px;
+    padding: 38px 34px 30px;
     font-size: 18px;
   }
 
@@ -283,6 +269,7 @@
   left: 0;
   right: 0;
   opacity: 0;
+  pointer-events: none; /* the flaps stay in place after the animation; clicks must pass through */
   transform-origin: top center;
   animation: flap 0.5s ease-in-out forwards;
 }

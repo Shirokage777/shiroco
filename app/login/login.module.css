@@ -1,8 +1,17 @@
+/* Same plain concrete wall as the app behind the login (page.module.css .bunker),
+   but nothing else from its look: no stripes, no notes, nothing about the content. */
 .page {
   min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: 16px;
+  color: #e4e1d8;
+  background-color: #3a3a37;
+  background-image:
+    radial-gradient(circle at 20% 30%, #ffffff08 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, #00000014 0 40px, transparent 120px),
+    radial-gradient(circle at 85% 15%, #ffffff06 0 60px, transparent 160px);
+  background-size: 7px 7px, 100% 100%, 100% 100%;
 }
 
 .form {
@@ -17,15 +26,19 @@
   font-size: 16px; /* 16px keeps iOS Safari from zooming into the field */
   padding: 12px;
   border-radius: 6px;
-  border: 1px solid #8884;
-  background: transparent;
+  border: 1px solid #ffffff33;
+  background: #00000033;
   color: inherit;
+}
+
+.form input::placeholder {
+  color: #b9b5aa;
 }
 
 .form button {
   cursor: pointer;
-  background: var(--foreground);
-  color: var(--background);
+  background: #e4e1d8;
+  color: #2c2c2a;
 }
 
 .form button:disabled {
@@ -34,5 +47,5 @@
 
 .form p {
   font-size: 14px;
-  color: #c0392b;
+  color: #f0a08a;
 }
