@@ -1,10 +1,15 @@
 import SignOut from "./sign-out";
+import Table from "./table";
+import styles from "./page.module.css";
 
-// Reached only with a valid session (see middleware.ts). The randomizer comes here next.
+// Reached only with a valid session (see middleware.ts).
 export default function Home() {
   return (
-    <main>
-      <SignOut />
+    <main className={styles.page}>
+      <Table />
+      <footer className={styles.footer}>
+        <SignOut />
+      </footer>
     </main>
   );
 }

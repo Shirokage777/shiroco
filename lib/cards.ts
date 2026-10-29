@@ -1,22 +1,8 @@
 import "server-only";
 import deck from "@/data/cards.json";
+import type { Card, Deck } from "./types";
 
-export type Option = { label: string; text: string };
-
-export type Card = {
-  id: string;
-  set: string;
-  title: string;
-  trigger: string;
-  text: string;
-  options: Option[];
-  mature: boolean;
-  noCoop: boolean;
-  notes?: string;
-};
-
-export type Deck = { set: string; count: number; cards: Card[] };
-
+export type { Card, Deck, Option } from "./types";
 export { validateDeck } from "./validate";
 
 // The deck is bundled into server code only. Never import this from a client component.

@@ -1,0 +1,104 @@
+.setup,
+.table {
+  display: grid;
+  gap: 16px;
+  width: min(560px, 100%);
+}
+
+.setup label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 16px;
+}
+
+.setup input {
+  width: 20px;
+  height: 20px;
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #8884;
+  line-height: 1.5;
+}
+
+.card h2 {
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.trigger {
+  font-style: italic;
+  font-weight: 600;
+}
+
+.actions,
+.options {
+  display: grid;
+  gap: 10px;
+}
+
+.setup button,
+.table button {
+  font: inherit;
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #8886;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.setup .primary,
+.table .primary {
+  background: var(--foreground);
+  color: var(--background);
+  text-align: center;
+  font-weight: 600;
+}
+
+.option,
+.chosen,
+.dimmed {
+  display: grid;
+  gap: 4px;
+}
+
+.table .chosen {
+  border-color: var(--foreground);
+  border-width: 2px;
+}
+
+.table .dimmed {
+  opacity: 0.35;
+}
+
+.table button:disabled {
+  cursor: default;
+}
+
+.table .link {
+  border: none;
+  padding: 4px 0;
+  text-decoration: underline;
+  font-size: 14px;
+}
+
+.note {
+  opacity: 0.8;
+}
