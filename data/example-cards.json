@@ -1,0 +1,44 @@
+{
+  "set": "example",
+  "count": 3,
+  "cards": [
+    {
+      "id": "example-001",
+      "set": "example",
+      "title": "Abandoned Bakery",
+      "trigger": "If the player moves a survivor:",
+      "text": "The smell of old flour still hangs in the air. Behind the counter, a cabinet door stands half open.",
+      "options": [
+        { "label": "Option 1", "text": "Search the cabinet. Roll a die. On a 4 or higher, add 2 food to the supply." },
+        { "label": "Option 2", "text": "Keep moving. Nothing happens." }
+      ],
+      "mature": false,
+      "noCoop": false
+    },
+    {
+      "id": "example-002",
+      "set": "example",
+      "title": "Town Meeting",
+      "trigger": "If a survivor the player controls is at the colony:",
+      "text": "Everyone gathers by the fire to decide how to spend the last of the firewood. Every player with 1 or more survivors at the colony votes with a thumbs up or down.",
+      "options": [
+        { "label": "Thumbs up option", "text": "Burn it tonight. Gain 1 morale." },
+        { "label": "Thumbs down option", "text": "Save it. Nothing happens." }
+      ],
+      "mature": false,
+      "noCoop": false
+    },
+    {
+      "id": "example-003",
+      "set": "example",
+      "title": "Quiet Night",
+      "trigger": "If the player controls a survivor at the colony:",
+      "text": "For once, nothing moves outside the walls.",
+      "options": [
+        { "label": "Only option", "text": "Each player removes 1 wound from a survivor they control." }
+      ],
+      "mature": false,
+      "noCoop": false
+    }
+  ]
+}
