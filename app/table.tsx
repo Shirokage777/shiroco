@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
+import { choose, discardCurrent, drawCard, newGame, playable, reveal, symbols, type GameOptions, type GameState } from "@/lib/deck";
 import type { Card } from "@/lib/types";
 import styles from "./table.module.css";
 
@@ -74,20 +74,33 @@ export default function Table() {
 
       {card && (
         <div className={`${styles.pin} ${styles.clipped}`}>
-        <article className={`${styles.card} ${styles.paper}`} aria-live="polite">
+        {/* When triggered, the note unfolds three times (1/8 → 1/4 → 1/2 → full):
+            the card is revealed step by step while a paper flap swings down at each fold. */}
+        {game.revealed && (
+          <>
+            <div className={`${styles.flap} ${styles.flap1}`} aria-hidden="true" />
+            <div className={`${styles.flap} ${styles.flap2}`} aria-hidden="true" />
+            <div className={`${styles.flap} ${styles.flap3}`} aria-hidden="true" />
+          </>
+        )}
+        <article
+          key={game.revealed ? "open" : "folded"}
+          className={`${styles.card} ${styles.paper} ${game.revealed ? styles.unfold : ""}`}
+          aria-live="polite"
+        >
           {game.revealed && <h2>{card.title}</h2>}
-          <p className={styles.trigger}>{card.trigger}</p>
+          <p className={styles.trigger}>{symbols(card.trigger)}</p>
 
           {!game.revealed && (
             <div className={styles.actions}>
               <button className={styles.primary} onClick={() => setGame(reveal(game))}>Triggered</button>
-              <button onClick={() => setGame(discardCurrent(game))}>Not triggered</button>
+              <button className={styles.quiet} onClick={() => setGame(discardCurrent(game))}>Not Triggered</button>
             </div>
           )}
 
           {game.revealed && (
             <>
-              <p>{card.text}</p>
+              <p>{symbols(card.text)}</p>
               <div className={styles.options}>
                 {card.options.map((option, i) => (
                   <button
@@ -97,7 +110,7 @@ export default function Table() {
                     disabled={game.chosen !== null}
                   >
                     <strong>{option.label}</strong>
-                    <span>{option.text}</span>
+                    <span>{symbols(option.text)}</span>
                   </button>
                 ))}
               </div>

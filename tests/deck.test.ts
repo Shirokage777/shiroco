@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { choose, discardCurrent, drawCard, newGame, playable, reveal, shuffle, type GameOptions } from "@/lib/deck";
+import { choose, discardCurrent, drawCard, newGame, playable, reveal, shuffle, symbols, type GameOptions } from "@/lib/deck";
 import type { Card } from "@/lib/types";
 
 const card = (id: string, extra: Partial<Card> = {}): Card => ({
@@ -95,5 +95,12 @@ describe("draw cycle", () => {
     const game = newGame(deck, { leaveOutMature: true, coop: true });
     expect(ids(game.draw)).toEqual(["a", "e"]);
     expect(game.current).toBeNull();
+  });
+});
+
+describe("card text", () => {
+  it("shows printed symbols as plain words", () => {
+    expect(symbols("If the player uses a {weapon} item card:")).toBe("If the player uses a weapon item card:");
+    expect(symbols("No symbols here.")).toBe("No symbols here.");
   });
 });

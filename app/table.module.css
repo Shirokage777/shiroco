@@ -37,14 +37,35 @@
   color: var(--ink);
 }
 
-.paper::before {
+.paper::before,
+.paper::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-color: #c4b693;
+}
+
+.paper::after {
+  /* Punched perforations down the left edge (torn out of a notebook) and two small
+     worn-through holes near the right edge. They are painted in the wall colour with a
+     dark rim rather than cut out, because a mask would also trim the frayed edge. */
+  background-image:
+    radial-gradient(circle 4.5px at 12px 12px, #2f2f2c 0 3.6px, #1f170c99 4.5px, transparent 5.5px),
+    radial-gradient(circle 3px at calc(100% - 13px) 34%, #2f2f2c 0 2.4px, #1f170c99 3px, transparent 4px),
+    radial-gradient(circle 2px at calc(100% - 9px) 71%, #2f2f2c 0 1.6px, #1f170c99 2px, transparent 3px);
+  background-size: 24px 24px, 100% 100%, 100% 100%;
+  background-position: 0 10px, 0 0, 0 0;
+  background-repeat: repeat-y, no-repeat, no-repeat;
+}
+
+/* The paper look, shared by the notes and the unfolding flaps. */
+.paper::before,
+.flap {
+  background-color: #d4c9ab;
   background-image:
     linear-gradient(transparent 48.6%, #00000024 49.6%, #ffffff26 50.4%, transparent 51.4%),
+    linear-gradient(transparent 24.4%, #00000014 24.9%, #ffffff1a 25.3%, transparent 25.8%),
+    linear-gradient(transparent 74.4%, #00000014 74.9%, #ffffff1a 75.3%, transparent 75.8%),
     url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1' seed='4'/><feColorMatrix values='0 0 0 0 0.13 0 0 0 0 0.09 0 0 0 0 0.05 3 0 0 0 -1.95'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
     url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.7 0.018' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0 0.12 1.1 0 0 0 -0.5'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
     url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='560'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='4' seed='7'/><feColorMatrix values='0 0 0 0 0.28 0 0 0 0 0.18 0 0 0 0 0.07 2.5 0 0 0 -0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
@@ -54,14 +75,14 @@
     radial-gradient(ellipse 120px 80px at 100% 0%, #2e201077, transparent),
     radial-gradient(ellipse 130px 90px at 0% 100%, #2e201088, transparent),
     radial-gradient(ellipse at 50% 45%, transparent 50%, #4a35186b 100%);
-  background-size: 100% 100%, 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   box-shadow: inset 0 0 22px #3a2a1299, inset 0 0 4px #2a1d0ccc;
   filter: url(#torn-paper);
 }
 
 /* Setup: a clipboard notice */
 .setup {
-  padding: 24px 22px;
+  padding: 24px 22px 24px 32px;
 }
 
 .setup label {
@@ -94,7 +115,7 @@
 .card {
   display: grid;
   gap: 14px;
-  padding: 30px 22px 24px;
+  padding: 30px 22px 24px 32px;
   line-height: 1.55;
   font-size: 17px;
 }
@@ -201,7 +222,7 @@
 .ask {
   display: grid;
   gap: 10px;
-  padding: 18px;
+  padding: 18px 18px 18px 32px;
 }
 
 .note {
@@ -210,11 +231,104 @@
 
 @media (min-width: 768px) {
   .card {
-    padding: 38px 34px 30px;
+    padding: 38px 34px 30px 42px;
     font-size: 18px;
   }
 
   .card h2 {
     font-size: 30px;
+  }
+}
+
+/* "Not Triggered": same stamped font as Triggered, but a quiet outlined button. */
+.table .quiet {
+  font-family: var(--font-stamp), monospace;
+  text-align: center;
+  font-size: 19px;
+  letter-spacing: 0.05em;
+  padding: 14px;
+  color: var(--rust-dark);
+  border: 1px solid var(--rust);
+  background: #ffffff26;
+}
+
+/* Unfolding the note. The card shows 1/8, 1/4, 1/2, then all of itself, while a
+   flap (the paper's back) swings down from each fold line. Clip insets are negative
+   at the sides so the frayed edges are never cut. */
+.unfold {
+  animation: unfold 1.5s linear both;
+}
+
+@keyframes unfold {
+  0%,
+  33% {
+    clip-path: inset(-24px -24px 87.5% -24px);
+  }
+  33.1%,
+  66% {
+    clip-path: inset(-24px -24px 75% -24px);
+  }
+  66.1%,
+  99.9% {
+    clip-path: inset(-24px -24px 50% -24px);
+  }
+  100% {
+    clip-path: inset(-24px);
+  }
+}
+
+.flap {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  transform-origin: top center;
+  animation: flap 0.5s ease-in-out forwards;
+}
+
+.flap1 {
+  top: 12.5%;
+  height: 12.5%;
+}
+
+.flap2 {
+  top: 25%;
+  height: 25%;
+  animation-delay: 0.5s;
+}
+
+.flap3 {
+  top: 50%;
+  height: 50%;
+  animation-delay: 1s;
+}
+
+@keyframes flap {
+  0% {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(178deg);
+  }
+  50% {
+    filter: url(#torn-paper) brightness(0.82);
+  }
+  96% {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(0deg);
+    filter: url(#torn-paper) brightness(1);
+  }
+  100% {
+    opacity: 0;
+    transform: perspective(1400px) rotateX(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unfold {
+    animation: none;
+  }
+
+  .flap {
+    display: none;
   }
 }

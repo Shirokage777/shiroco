@@ -16,6 +16,11 @@ export type Random = () => number; // [0, 1)
 
 export const cryptoRandom: Random = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 
+// Cards mark printed game symbols like {weapon}; show them as plain words.
+export function symbols(text: string): string {
+  return text.replace(/\{(\w+)\}/g, "$1");
+}
+
 export function playable(cards: Card[], options: GameOptions): Card[] {
   return cards.filter((c) => !(options.leaveOutMature && c.mature) && !(options.coop && c.noCoop));
 }
