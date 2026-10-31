@@ -28,9 +28,8 @@
   z-index: -1;
 }
 
-/* The paper look, shared by the notes and the unfolding flaps. */
-.paper::before,
-.flap {
+/* The paper look of every note. */
+.paper::before {
   background-color: #d4c9ab;
   background-image:
     linear-gradient(transparent 48.6%, #00000024 49.6%, #ffffff26 50.4%, transparent 51.4%),
@@ -277,163 +276,10 @@
   }
 }
 
-/* Fold flaps: the paper's back, swinging along a fold line. The unfold makes its own
-   (unfold.ts); these three serve the refold on Done. Invisible until animated. */
-.flap {
-  position: absolute;
-  z-index: 2;
-  left: 0;
-  right: 0;
-  opacity: 0;
-  pointer-events: none; /* flaps stay in place after animating; clicks must pass through */
-  transform-origin: top center;
-}
-
-.flap1 {
-  top: 12.5%;
-  height: 12.5%;
-}
-
-.flap2 {
-  top: 25%;
-  height: 25%;
-}
-
-.flap3 {
-  top: 50%;
-  height: 50%;
-}
-
-/* The draw note: a small note holding only the Draw card button. When it turns into the
-   (taller) trigger note, the turn grows the sheet to the new size (flip.ts). */
+/* The draw note: a small note holding only the Draw card button. */
 .drawNote {
   display: grid;
   padding: 30px 22px;
-}
-
-/* Done: the card folds back up to 1/8 of its size. The big half swings up first,
-   the smallest fold last. */
-.refold {
-  animation: refold 1.5s linear both;
-}
-
-@keyframes refold {
-  0%,
-  33% {
-    clip-path: inset(-24px -24px 50% -24px);
-  }
-  33.1%,
-  66% {
-    clip-path: inset(-24px -24px 75% -24px);
-  }
-  66.1%,
-  100% {
-    clip-path: inset(-24px -24px 87.5% -24px);
-  }
-}
-
-/* Each fold folds everything already folded along with it. So the folded part does not
-   stay on top: as the next fold starts, the earlier flap is cut down to the part that is not
-   folding (clip in the flap's own frame: after turning up, its far end is the top of the card),
-   the new flap lies over it and swings up, and when that one lands the earlier flap goes.
-   One timeline of 1.5 s for all three, so the hand-overs line up exactly. */
-.refolding .flap {
-  animation-duration: 1.5s;
-  animation-fill-mode: forwards;
-  animation-delay: 0s;
-}
-
-.refolding .flap3 {
-  z-index: 2;
-  animation-name: foldHalf;
-}
-
-.refolding .flap2 {
-  z-index: 3;
-  animation-name: foldQuarter;
-}
-
-.refolding .flap1 {
-  z-index: 4;
-  animation-name: foldEighth;
-}
-
-@keyframes foldHalf {
-  0% {
-    opacity: 1;
-    clip-path: inset(0);
-    transform: perspective(1400px) rotateX(0deg);
-    animation-timing-function: ease-in-out;
-  }
-  33% {
-    clip-path: inset(0);
-    transform: perspective(1400px) rotateX(178deg);
-  }
-  33.1%,
-  66% {
-    opacity: 1;
-    clip-path: inset(50% 0 0 0);
-    transform: perspective(1400px) rotateX(178deg);
-  }
-  66.1%,
-  100% {
-    opacity: 0;
-    transform: perspective(1400px) rotateX(178deg);
-  }
-}
-
-@keyframes foldQuarter {
-  0%,
-  33% {
-    opacity: 0;
-    clip-path: inset(0);
-    transform: perspective(1400px) rotateX(0deg);
-  }
-  33.1% {
-    opacity: 1;
-    clip-path: inset(0);
-    transform: perspective(1400px) rotateX(0deg);
-    animation-timing-function: ease-in-out;
-  }
-  66% {
-    clip-path: inset(0);
-    transform: perspective(1400px) rotateX(178deg);
-  }
-  66.1%,
-  100% {
-    opacity: 1;
-    clip-path: inset(50% 0 0 0);
-    transform: perspective(1400px) rotateX(178deg);
-  }
-}
-
-@keyframes foldEighth {
-  0%,
-  66% {
-    opacity: 0;
-    transform: perspective(1400px) rotateX(0deg);
-  }
-  66.1% {
-    opacity: 1;
-    transform: perspective(1400px) rotateX(0deg);
-    animation-timing-function: ease-in-out;
-  }
-  100% {
-    opacity: 1;
-    transform: perspective(1400px) rotateX(178deg);
-  }
-}
-
-/* While the folded packet is turned over, a plain stand-in sheet takes its place. */
-.folded > article,
-.folded > .flap {
-  visibility: hidden;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .flap {
-    display: none;
-  }
 }
 
 /* Printed symbols from the real cards. In text they sit on the line like a word. */
@@ -461,71 +307,6 @@
 .mark {
   height: 22px;
   width: auto;
-}
-
-/* Confirmation notes grow out of the button that asked for them: New game sits top right,
-   Sign out at the bottom. The growing is on the note inside the pin. */
-.growFromTopRight,
-.growFromBottom {
-  animation: growNote 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
-}
-
-.growFromTopRight {
-  transform-origin: 92% 0;
-}
-
-.growFromBottom {
-  transform-origin: 50% 100%;
-}
-
-.shrinkToTopRight,
-.shrinkToBottom {
-  animation: shrinkNote 0.26s cubic-bezier(0.5, 0, 0.75, 0.3) both;
-}
-
-.shrinkToTopRight {
-  transform-origin: 92% 0;
-}
-
-.shrinkToBottom {
-  transform-origin: 50% 100%;
-}
-
-@keyframes shrinkNote {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  70% {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.12);
-  }
-}
-
-@keyframes growNote {
-  from {
-    opacity: 0;
-    transform: scale(0.12);
-  }
-  40% {
-    opacity: 1;
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .growFromTopRight,
-  .growFromBottom,
-  .shrinkToTopRight,
-  .shrinkToBottom {
-    animation: none;
-  }
 }
 
 /* Above each option: the page's hazard stripe (page.module.css .hazard), black only, the
