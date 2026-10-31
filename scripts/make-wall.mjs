@@ -195,8 +195,9 @@ add(`<rect width="${W}" height="${H}" filter="url(#grime)"/>`);
 add(`<rect width="${W}" height="${H}" filter="url(#streaks)" opacity="0.8"/>`);
 
 // Fittings ---------------------------------------------------------------------------------
-// Decades without maintenance: every metal part rusts in its own way, heaviest where water
-// collects (joints, brackets, bolts), and the rust bleeds down the wall below it. The fittings
+// Decades without maintenance, but steel that was made to last: the rust is sporadic, small
+// spots mostly where two pieces of metal meet (couplings, clamps, bolts, hinges) or water
+// hangs, now and then running down the wall below. The fittings
 // use their own random, and each rust overlay one of several noise filters (rust0..rust7) at
 // its own strength, so no two stretches of pipe weather alike.
 let fseed = 777;
@@ -231,9 +232,9 @@ function bolt(x, y, wall = true) {
     if (wall) bleed(x, y + 2, 0.5);
     return;
   }
-  add(`<use href="#${r < 0.6 ? "boltRust" : "bolt"}" x="${f(x)}" y="${f(y)}" transform="rotate(${f(fb(0, 90))} ${f(x)} ${f(y)})"/>`);
-  if (r < 0.6) bloom(x + 1, y + 2, fb(4, 8), fb(4, 7));
-  if (wall && frand() < 0.5) bleed(x, y + 3, 0.6);
+  add(`<use href="#${r < 0.35 ? "boltRust" : "bolt"}" x="${f(x)}" y="${f(y)}" transform="rotate(${f(fb(0, 90))} ${f(x)} ${f(y)})"/>`);
+  if (r < 0.2) bloom(x + 1, y + 2, fb(3, 6), fb(3, 5));
+  if (wall && frand() < 0.2) bleed(x, y + 3, 0.5);
 }
 
 // The surface of a pipe along its length: metal streaks, shading, dust on top.
@@ -255,28 +256,23 @@ function pipe({ vertical = false, at, d, from = 0, to = vertical ? H : W, wrap =
   const joints = wrap ? [from] : [];
   for (let p = from + fb(140, 380); p < to - 60; p += fb(260, 560)) joints.push(p);
   const bounds = [from, ...joints.filter((j) => j > from), to];
-  // Each section: its own tone and its own rust, from a light bloom to heavy crust.
+  // Each section: its own tone.
   for (let i = 0; i < bounds.length - 1; i++) {
     const [a, b] = [bounds[i], bounds[i + 1]];
     add(rect(a, b).replace("/>", ` fill="${frand() < 0.5 ? "#000" : "#fff"}" opacity="${f(fb(0, 0.12))}"/>`));
-    over(rect(a, b), rustF(), fb(0.25, 0.95));
-    if (frand() < 0.6) over(rect(a, b), rustF(), fb(0.2, 0.6));
-    // Rust gathers on the underside, where condensation hangs before it drips.
-    const under = vertical ? `<rect x="${at + d * 0.65}" y="${f(a)}" width="${f(d * 0.35)}" height="${f(b - a)}"/>` : `<rect x="${f(a)}" y="${at + d * 0.62}" width="${f(b - a)}" height="${f(d * 0.38)}"/>`;
-    over(under, rustF(), fb(0.4, 0.9));
+    // No coat of rust: now and then a small patch, mostly on the underside where water hangs.
+    for (let k = 0, n = frand() < 0.5 ? 0 : Math.floor(fb(1, 3)); k < n; k++) {
+      const p = fb(a + 10, b - 10);
+      const q = fb(0.55, 0.95) * d;
+      bloom(vertical ? at + q : p, vertical ? p : at + q, fb(4, 12), fb(2, 5));
+    }
     // A broken specular line: what is left of the metal's shine.
     const shine = vertical ? `<rect x="${at + d * 0.3}" y="${f(a)}" width="${f(Math.max(1.5, d * 0.08))}" height="${f(b - a)}"/>` : `<rect x="${f(a)}" y="${at + d * 0.3}" width="${f(b - a)}" height="${f(Math.max(1.5, d * 0.08))}"/>`;
     add(shine.replace("/>", ` fill="#d8d2c4" opacity="${f(fb(0.12, 0.28))}" filter="url(#broken)"/>`));
-    // Flaking scale here and there.
-    for (let k = 0, n = Math.floor(fb(0, (b - a) / 90)); k < n; k++) {
-      const p = fb(a, b);
-      const q = fb(0.15, 0.85) * d;
-      bloom(vertical ? at + q : p, vertical ? p : at + q, fb(3, 10), fb(2, 6));
-    }
     // Dust settles along the top of horizontal pipes.
     if (!vertical) add(`<rect x="${f(a)}" y="${at}" width="${f(b - a)}" height="${f(d * 0.18)}" fill="#8a7f6c" opacity="${f(fb(0.15, 0.35))}" filter="url(#broken)"/>`);
     // Water runs off the underside: drips mostly at the low points, a few anywhere.
-    if (!vertical) for (let k = 0, n = Math.floor(fb(0, (b - a) / 160)); k < n; k++) drip(fb(a, b), at + d, fb(20, 120), frand() < 0.4);
+    if (!vertical) for (let k = 0, n = Math.floor(fb(0, (b - a) / 260)); k < n; k++) drip(fb(a, b), at + d, fb(20, 120), frand() < 0.4);
   }
   // Couplings: collars a little wider than the pipe, the worst rust of the run.
   for (const j of joints) {
@@ -286,10 +282,12 @@ function pipe({ vertical = false, at, d, from = 0, to = vertical ? H : W, wrap =
       const collar = vertical ? `<rect x="${at - 4}" y="${f(p - c / 2)}" width="${d + 8}" height="${f(c)}" rx="2"/>` : `<rect x="${f(p - c / 2)}" y="${at - 4}" width="${f(c)}" height="${d + 8}" rx="2"/>`;
       add(collar.replace("/>", ` fill="url(#${vertical ? "pipeV" : "pipeH"})"/>`));
       add(collar.replace("/>", ` fill="#000" opacity="0.35"/>`));
-      over(collar, rustF(), fb(0.6, 1));
-      bloom(vertical ? at + d / 2 : p, vertical ? p : at + d * 0.7, fb(10, 22), fb(8, 16));
-      if (!vertical) bleed(p, at + d + 4, fb(0.7, 1.4));
-      else bleed(at + d / 2, p + c / 2, fb(0.5, 1));
+      over(collar, rustF(), fb(0.15, 0.45));
+      if (frand() < 0.6) bloom(vertical ? at + d * fb(0.3, 0.8) : p + fb(-c / 2, c / 2), vertical ? p + fb(-c / 2, c / 2) : at + d * fb(0.5, 0.9), fb(4, 10), fb(3, 7));
+      if (frand() < 0.4) {
+        if (!vertical) bleed(p, at + d + 4, fb(0.5, 1));
+        else bleed(at + d / 2, p + c / 2, fb(0.4, 0.8));
+      }
     }
   }
   // Clamps to the wall at irregular spacing, rusted thin; now and then one has rotted away
@@ -297,7 +295,7 @@ function pipe({ vertical = false, at, d, from = 0, to = vertical ? H : W, wrap =
   for (let p = from + fb(120, 300); p < to - 40; p += fb(240, 420)) {
     if (frand() < 0.18) {
       const ghost = vertical ? `<rect x="${at - 10}" y="${f(p)}" width="${d + 20}" height="11"/>` : `<rect x="${f(p)}" y="${at - 10}" width="11" height="${d + 20}"/>`;
-      over(ghost, rustF(), 0.7);
+      over(ghost, rustF(), 0.4);
       add(`<circle cx="${f(vertical ? at - 6 : p + 5)}" cy="${f(vertical ? p + 5 : at - 6)}" r="2" fill="#080706"/>`);
       bleed(vertical ? at - 6 : p + 5, vertical ? p + 7 : at - 4, 0.8);
       continue;
@@ -317,7 +315,7 @@ function clamp(vertical, at, d, p) {
   const strap = vertical ? `<rect x="${at - tab}" y="${f(p)}" width="${f(d + 2 * tab)}" height="${f(w)}" rx="1.5"/>` : `<rect x="${f(p)}" y="${at - tab}" width="${f(w)}" height="${f(d + 2 * tab)}" rx="1.5"/>`;
   add(strap.replace("/>", ` fill="#000" fill-opacity="0.5" filter="url(#softer)" transform="translate(2 3)"/>`));
   add(strap.replace("/>", ` fill="#3b2f26"/>`));
-  over(strap, rustF(), fb(0.7, 1));
+  over(strap, rustF(), fb(0.2, 0.5));
   add(strap.replace("/>", ` fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="1"/>`));
   add(`</g>`);
   if (vertical) {
@@ -327,7 +325,7 @@ function clamp(vertical, at, d, p) {
     bolt(p + w / 2, at - tab / 2);
     bolt(p + w / 2, at + d + tab / 2);
   }
-  bloom(cx, cy + 3, fb(8, 16), fb(6, 12));
+  if (frand() < 0.45) bloom(cx + fb(-4, 4), cy + fb(-d / 2, d / 2), fb(3, 8), fb(3, 6));
 }
 
 function valve(cx, cy) {
@@ -362,7 +360,7 @@ function cables(points, colours) {
   for (const [x, y] of points.slice(1, -1)) {
     const clip = `<rect x="${x - 5}" y="${y - 5}" width="10" height="${colours.length * 7 + 6}" rx="2"/>`;
     add(clip.replace("/>", ` fill="#2f2620"/>`));
-    over(clip, rustF(), 0.9);
+    over(clip, rustF(), fb(0.2, 0.5));
     bolt(x, y - 1);
   }
 }
@@ -371,11 +369,10 @@ function cables(points, colours) {
 function weatherBox(x, y, w, h, rx) {
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="10" stroke-opacity="0.45" filter="url(#edgeGrime)"/>`);
   spots(x, y, w, h, Math.round((w * h) / 1500));
-  for (let i = 0, n = Math.floor(fb(2, 5)); i < n; i++) {
-    const ex = frand() < 0.5 ? x + fb(0, 14) : x + w - fb(0, 14);
-    bloom(ex, y + fb(0, h), fb(5, 12), fb(8, 22));
+  for (let i = 0, n = Math.floor(fb(0, 2.5)); i < n; i++) {
+    const ex = frand() < 0.5 ? x + fb(0, 6) : x + w - fb(0, 6);
+    bloom(ex, y + fb(0, h), fb(2, 5), fb(4, 9));
   }
-  bloom(x + fb(0, w), y + h - fb(0, 8), fb(10, 26), fb(4, 8));
   for (let i = 0, n = Math.floor(fb(2, 6)); i < n; i++) {
     const sx = x + fb(6, w - 6);
     const sy = y + fb(6, h - 6);
@@ -393,7 +390,7 @@ function breakerPanel(x, y, w, h) {
   add(`<rect x="${x + 9}" y="${y + 9}" width="${w - 18}" height="1" fill="#fff" fill-opacity="0.08"/>`);
   for (const hy of [y + 30, y + h - 46]) {
     add(`<rect x="${x + 3}" y="${hy}" width="7" height="16" rx="1" fill="#3a2c22"/>`);
-    bloom(x + 6, hy + 10, 5, 10);
+    if (frand() < 0.6) bloom(x + 6, hy + fb(2, 14), 3, 5);
   }
   add(`<rect x="${x + w - 22}" y="${y + h / 2 - 18}" width="10" height="36" rx="3" fill="#232220"/>`);
   add(`<rect x="${x + w - 20}" y="${y + h / 2 - 16}" width="3" height="32" fill="#fff" fill-opacity="0.08"/>`);
@@ -409,7 +406,7 @@ function breakerPanel(x, y, w, h) {
   add(`<text x="${x + w / 2}" y="${y + 104}" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="bold" font-size="11" letter-spacing="1" fill="#1a1917" fill-opacity="0.7">MAIN BREAKER</text>`);
   weatherBox(x, y, w, h, 3);
   for (const [sx, sy] of [[x + 5, y + 5], [x + w - 5, y + 5], [x + 5, y + h - 5], [x + w - 5, y + h - 5]]) bolt(sx, sy, false);
-  for (let i = 0; i < 4; i++) bleed(x + fb(6, w - 6), y + h, fb(0.5, 1));
+  for (let i = 0; i < 2; i++) bleed(x + fb(6, w - 6), y + h, fb(0.4, 0.8));
 }
 
 function junctionBox(x, y, w, h, conduitTo) {
@@ -421,7 +418,7 @@ function junctionBox(x, y, w, h, conduitTo) {
   add(`<rect x="${x + 10}" y="${y + 10}" width="${w - 20}" height="${h - 20}" rx="2" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="2"/>`);
   weatherBox(x, y, w, h, 4);
   for (const [sx, sy] of [[x + 9, y + 9], [x + w - 9, y + 9], [x + 9, y + h - 9], [x + w - 9, y + h - 9]]) bolt(sx, sy, false);
-  for (let i = 0; i < 3; i++) bleed(x + fb(6, w - 6), y + h, fb(0.5, 1));
+  bleed(x + fb(6, w - 6), y + h, fb(0.4, 0.8));
 }
 
 function vent(x, y, w, h) {
@@ -430,13 +427,13 @@ function vent(x, y, w, h) {
   for (let sy = y + 12; sy < y + h - 10; sy += 12) {
     add(`<rect x="${x + 10}" y="${sy}" width="${w - 20}" height="7" fill="#0e0d0c"/>`);
     add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2" fill="#fff" fill-opacity="0.06"/>`);
-    if (frand() < 0.5) bloom(x + fb(14, w - 14), sy + 8, fb(6, 18), 2.5);
+    if (frand() < 0.15) bloom(x + fb(14, w - 14), sy + 8, fb(4, 10), 2);
   }
   weatherBox(x, y, w, h, 3);
   for (const [sx, sy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + h - 6], [x + w - 6, y + h - 6]]) bolt(sx, sy, false);
   // Soot blown out of the vent onto the wall above it.
   add(`<ellipse cx="${x + w / 2}" cy="${y - 20}" rx="${w * 0.6}" ry="60" fill="#0a0908" fill-opacity="0.5" filter="url(#sooty)"/>`);
-  for (let i = 0; i < 5; i++) bleed(x + fb(10, w - 10), y + h, fb(0.4, 1));
+  for (let i = 0; i < 2; i++) bleed(x + fb(10, w - 10), y + h, fb(0.4, 0.8));
 }
 
 // An enamel sign screwed to the wall: faded, chipped down to the steel, the chips rusting,
@@ -462,7 +459,7 @@ function warningSign(x, y, w, h, tilt) {
     const cx = edge ? (frand() < 0.5 ? x + fb(0, 16) : x + w - fb(0, 16)) : x + fb(10, w - 10);
     const cy = edge ? y + fb(0, h) : frand() < 0.5 ? y + fb(0, 14) : y + h - fb(0, 14);
     const rx = fb(2.5, 9);
-    bloom(cx, cy + 1, rx * 1.8, rx * 1.4);
+    if (frand() < 0.5) bloom(cx, cy + 1, rx * 1.3, rx * 1.1);
     add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(rx * fb(0.5, 0.9))}" fill="#2a221d" transform="rotate(${f(fb(0, 180))} ${f(cx)} ${f(cy)})"/>`);
   }
   spots(x, y, w, h, 11);
