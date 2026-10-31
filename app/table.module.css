@@ -331,20 +331,11 @@
   }
 }
 
-/* The draw note: same layout as the trigger note it turns into (an invisible copy of it
-   gives the size), with only the Draw card button showing, centred. */
-.ghost {
+/* The draw note: a small note holding only the Draw card button. When it turns into the
+   (taller) trigger note, the turn grows the sheet to the new size (flip.ts). */
+.drawNote {
   display: grid;
-  gap: 14px;
-  visibility: hidden;
-}
-
-.drawOverlay {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  align-items: center;
-  padding: 0 22px;
+  padding: 30px 22px;
 }
 
 /* Done: the unfold backwards. The big flap swings up first, the small one last.
