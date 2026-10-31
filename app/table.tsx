@@ -50,6 +50,13 @@ export default function Table() {
     else setBusy(false);
   }, [game]);
 
+  // The card's creases are laid out on its height as opened, so they stay put when Done
+  // appears below the options and the card grows (table.module.css, --crease-h).
+  useLayoutEffect(() => {
+    const open = openRef.current;
+    if (game?.revealed && open) open.style.setProperty("--crease-h", `${open.offsetHeight}px`);
+  }, [game?.revealed]);
+
   // After Triggered: the card unfolds from the size of the note that was turned over.
   useLayoutEffect(() => {
     if (!unfoldFrom.current || !game?.revealed || !openRef.current) return;
@@ -241,6 +248,8 @@ export default function Table() {
                 </div>
                 {game.chosen !== null && (
                   <>
+                    {/* A fold of its own above Done; the card's other creases stay where they are. */}
+                    <div className={styles.crease} aria-hidden="true" />
                     <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
                     <button className={styles.primary} onClick={done}>Done</button>
                   </>

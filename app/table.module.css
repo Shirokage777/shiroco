@@ -46,7 +46,10 @@
     radial-gradient(ellipse 120px 80px at 100% 0%, #2e201077, transparent),
     radial-gradient(ellipse 130px 90px at 0% 100%, #2e201088, transparent),
     radial-gradient(ellipse at 50% 45%, transparent 50%, #4a35186b 100%);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  /* The three creases sit in a layer as tall as --crease-h: the card's height when it was
+     opened (set in table.tsx). When Done appears and the card grows, they stay put. */
+  background-size: 100% var(--crease-h, 100%), 100% var(--crease-h, 100%), 100% var(--crease-h, 100%), 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   box-shadow: inset 0 0 22px #3a2a1299, inset 0 0 4px #2a1d0ccc;
   filter: url(#torn-paper);
 }
@@ -526,3 +529,17 @@
   }
 }
 
+
+/* A crease across the card, edge to edge (through the side padding), drawn like the
+   paper's own creases. Takes no room. */
+.crease {
+  height: 3px;
+  margin: 0 -22px -3px;
+  background: linear-gradient(#00000026, #ffffff2b);
+}
+
+@media (min-width: 768px) {
+  .crease {
+    margin: 0 -34px -3px;
+  }
+}
