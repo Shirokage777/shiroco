@@ -217,33 +217,6 @@ function bleed(x, y, strength = 1) {
 }
 // A rust bloom: an irregular patch of thick rust, swelling out of a joint or bolt.
 const bloom = (cx, cy, rx, ry) => add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" fill="#000" filter="url(#bloom${Math.floor(frand() * 3)})" opacity="${f(fb(0.6, 1))}"/>`);
-// Dings and dents: the metal pressed in a little, not a drawn shape. An irregular hollow lit
-// from above (dentFx): a dark rim inside its upper edge where the wall of the dent is in
-// shadow, a bright rim inside its lower edge where it faces the light, a faint shade between,
-// all slightly soft, and no outline. They use a random of their own, so adding them moved nothing else.
-let dseed = 4242;
-const drand = () => ((dseed = (dseed * 16807) % 2147483647) - 1) / 2147483646;
-const db = (a, b) => a + drand() * (b - a);
-function ding(x, y, size) {
-  // A lumpy closed outline, smoothed through the midpoints of its corners.
-  const n = 7;
-  const stretch = db(1, 1.8);
-  const turn = db(0, Math.PI);
-  const pts = Array.from({ length: n }, (_, k) => {
-    const a = (k / n) * Math.PI * 2 + db(-0.3, 0.3);
-    const r = size * db(0.55, 1.1);
-    const [px, py] = [Math.cos(a) * r * stretch, Math.sin(a) * r];
-    return [x + px * Math.cos(turn) - py * Math.sin(turn), y + px * Math.sin(turn) + py * Math.cos(turn)];
-  });
-  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-  let d = `M${mid(pts[n - 1], pts[0]).map(f).join(",")}`;
-  for (let k = 0; k < n; k++) d += ` Q${pts[k].map(f).join(",")} ${mid(pts[k], pts[(k + 1) % n]).map(f).join(",")}`;
-  add(`<path d="${d}Z" fill="#000" opacity="${f(db(0.65, 1))}" filter="url(#dentFx)"/>`);
-}
-function dings(x, y, w, h, n, maxSize) {
-  for (let i = 0; i < n; i++) ding(x + db(4, w - 4), y + db(3, h - 3), db(Math.min(3, maxSize * 0.6), maxSize));
-}
-
 // Spots of dirt: blotches of different size and darkness, never an even coat.
 function spots(x, y, w, h, n, colour = "#120e0a", [lo, hi] = [0.3, 0.75]) {
   for (let i = 0; i < n; i++) {
@@ -271,9 +244,6 @@ function pipeSurface(vertical, at, d, from, to) {
   const shape = vertical ? `<rect x="${at}" y="${from}" width="${d}" height="${to - from}"/>` : `<rect x="${from}" y="${at}" width="${to - from}" height="${d}"/>`;
   over(shape, "pipePatches", 0.95);
   over(shape, "pipePits", 1);
-  const along = to - from;
-  if (vertical) dings(at, from, d, along, Math.round(along / 140), Math.min(9, d * 0.3));
-  else dings(from, at, along, d, Math.round(along / 140), Math.min(9, d * 0.3));
   const clampTo = (v) => Math.min(at + d - 1.5, Math.max(at + 1.5, v));
   for (let i = 0, n = Math.round((to - from) / 22); i < n; i++) {
     const p = fb(from, to);
@@ -431,7 +401,6 @@ function weatherBox(x, y, w, h, rx, onBox = false, dirt = 1) {
   add(face.replace("/>", ` fill="url(#boxGrime)"/>`));
   add(`<rect x="${x + 2}" y="${y}" width="${w - 4}" height="${f(Math.min(10, h * 0.08))}" fill="#8a7f6c" opacity="${f(fb(0.25, 0.45))}" filter="url(#dusty)"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="${f(0.6 * dirt)}" filter="url(#edgeGrime)"/>`);
-  if (onBox) dings(x, y, w, h, Math.max(3, Math.round((w * h) / 3500)), 10);
   if (onBox) {
     // Stains and mould, brown and dark green, kept to the box's face.
     spots(x, y, w, h, Math.round(((w * h) / 700) * dirt), "#2a2117", [0.2, 0.5].map((o) => o * dirt));
@@ -606,7 +575,6 @@ const defs = `<defs>
 <filter id="blotch2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="2" seed="89"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.4 0 0 0 -0.6" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
 <filter id="pipePatches"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="21"/><feColorMatrix values="0 0 0 0 0.07 0 0 0 0 0.055 0 0 0 0 0.04 2.1 0 0 0 -0.95"/><feComposite in2="SourceGraphic" operator="in"/></filter>
 <filter id="pipePits"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 3.4 0 0 0 -2.2"/><feComposite in2="SourceGraphic" operator="in"/></filter>
-<filter id="dentFx" x="-40%" y="-40%" width="180%" height="180%"><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.14 0" result="shade"/><feOffset in="SourceAlpha" dy="1.6" result="down"/><feComposite in="SourceAlpha" in2="down" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0" result="dark"/><feOffset in="SourceAlpha" dy="-1.4" result="up"/><feComposite in="SourceAlpha" in2="up" operator="out"/><feColorMatrix values="0 0 0 0 0.95 0 0 0 0 0.93 0 0 0 0 0.88 0 0 0 0.28 0" result="light"/><feMerge><feMergeNode in="shade"/><feMergeNode in="dark"/><feMergeNode in="light"/></feMerge><feGaussianBlur stdDeviation="0.45"/></filter>
 <filter id="faceStreaks"><feTurbulence type="fractalNoise" baseFrequency="0.05 0.007" numOctaves="3" seed="91"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 2.2 0 0 0 -0.9"/><feComposite in2="SourceGraphic" operator="in"/></filter>
 <linearGradient id="boxGrime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0a07" stop-opacity="0.12"/><stop offset="0.45" stop-color="#0d0a07" stop-opacity="0"/><stop offset="0.8" stop-color="#0d0a07" stop-opacity="0.2"/><stop offset="1" stop-color="#0d0a07" stop-opacity="0.45"/></linearGradient>
 <filter id="dusty"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="63"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.8" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
