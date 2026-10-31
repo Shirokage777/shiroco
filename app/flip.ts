@@ -16,6 +16,10 @@ const EASE = "cubic-bezier(0.45, 0, 0.35, 1)";
 
 type Step = { angle: number; bend: number; light: number };
 
+// Height of the sheet that last turned away. The next note may be a different size, so it
+// starts its turn-in at that height and grows or shrinks to its own: no jump at the swap.
+let awayHeight = 0;
+
 // One side of a panel, showing the slice of `content` that lies under the panel.
 function face(content: HTMLElement, offsetX: number, slice: number, width: number, height: number, back: boolean) {
   const el = document.createElement("div");
@@ -34,7 +38,7 @@ function face(content: HTMLElement, offsetX: number, slice: number, width: numbe
 }
 
 // Builds the sheet over `note`, hides the note, plays the steps, then calls `done`.
-function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, backClass: string | null, done: () => void) {
+function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, backClass: string | null, done: () => void, startHeight = 0) {
   const host = note.parentElement;
   if (!host) return done();
   const width = note.offsetWidth;
@@ -94,6 +98,10 @@ function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, back
     }
   }
   spine.animate(steps.map((s) => ({ transform: `rotateY(${s.angle}deg)` })), timing);
+  if (startHeight && startHeight !== height) {
+    layer.style.transformOrigin = "50% 0";
+    layer.animate([{ transform: `scaleY(${startHeight / height})` }, { transform: "scaleY(1)" }], timing);
+  }
 
   note.style.visibility = "hidden";
   host.append(layer);
@@ -114,6 +122,7 @@ export function flipOver(note: HTMLElement, paperClass: string, done: () => void
 }
 
 export function turnAway(note: HTMLElement, done: () => void) {
+  awayHeight = note.offsetHeight;
   const steps = [
     { angle: 0, bend: 0, light: 1 },
     { angle: -90, bend: 1, light: 0.75 },
@@ -126,5 +135,6 @@ export function turnIn(note: HTMLElement, done: () => void = () => {}) {
     { angle: 90, bend: 1, light: 0.75 },
     { angle: 0, bend: 0, light: 1 },
   ];
-  turn(note, steps, TURN_MS / 2, "ease-out", null, done);
+  turn(note, steps, TURN_MS / 2, "ease-out", null, done, awayHeight);
+  awayHeight = 0;
 }

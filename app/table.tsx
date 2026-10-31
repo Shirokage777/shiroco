@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
 import type { Card } from "@/lib/types";
 import { flipOver, turnAway, turnIn } from "./flip";
@@ -28,6 +28,10 @@ export default function Table() {
   const noteRef = useRef<HTMLElement>(null);
   const openRef = useRef<HTMLElement>(null);
   const turnInNext = useRef(false);
+
+  // What drawing will give, worked out in advance: the draw note is laid out exactly like
+  // that trigger note (hidden), so both sides of the turned sheet are the same size.
+  const upcoming = useMemo(() => (game && !game.current ? drawCard(game) : null), [game]);
 
   useEffect(() => {
     fetch("/api/cards")
@@ -144,10 +148,21 @@ export default function Table() {
 
       {!card && (
         <div className={`${styles.pin} ${styles.clipped}`}>
-          <div ref={drawRef} className={`${styles.drawNote} ${styles.paper}`}>
-            <button className={styles.primary} onClick={() => turnTo(drawRef.current, drawCard)}>
-              Draw card
-            </button>
+          <div ref={drawRef} className={`${styles.card} ${styles.paper} ${styles.drawNote}`}>
+            {upcoming?.current && (
+              <div className={styles.ghost} aria-hidden="true" inert>
+                <p className={styles.trigger}><SymbolText text={upcoming.current.trigger} /></p>
+                <div className={styles.actions}>
+                  <button className={styles.primary} tabIndex={-1}>Triggered</button>
+                  <button className={styles.quiet} tabIndex={-1}>Not Triggered</button>
+                </div>
+              </div>
+            )}
+            <div className={styles.drawOverlay}>
+              <button className={styles.primary} onClick={() => upcoming && turnTo(drawRef.current, () => upcoming)}>
+                Draw card
+              </button>
+            </div>
           </div>
         </div>
       )}

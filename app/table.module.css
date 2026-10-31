@@ -331,10 +331,20 @@
   }
 }
 
-/* The draw note: a small note holding only the Draw card button. */
-.drawNote {
+/* The draw note: same layout as the trigger note it turns into (an invisible copy of it
+   gives the size), with only the Draw card button showing, centred. */
+.ghost {
   display: grid;
-  padding: 30px 22px;
+  gap: 14px;
+  visibility: hidden;
+}
+
+.drawOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-items: center;
+  padding: 0 22px;
 }
 
 /* Done: the unfold backwards. The big flap swings up first, the small one last.
@@ -359,35 +369,95 @@
   }
 }
 
+/* Each fold folds everything already folded along with it. So the folded part does not
+   stay on top: as the next fold starts, the earlier flap is cut down to the part that is not
+   folding (clip in the flap's own frame: after turning up, its far end is the top of the card),
+   the new flap lies over it and swings up, and when that one lands the earlier flap goes.
+   One timeline of 1.5 s for all three, so the hand-overs line up exactly. */
 .refolding .flap {
-  animation: flapBack 0.5s ease-in-out forwards;
-}
-
-.refolding .flap1 {
-  animation-delay: 1s;
-}
-
-.refolding .flap2 {
-  animation-delay: 0.5s;
-}
-
-.refolding .flap3 {
+  animation-duration: 1.5s;
+  animation-fill-mode: forwards;
   animation-delay: 0s;
 }
 
-@keyframes flapBack {
+.refolding .flap3 {
+  z-index: 2;
+  animation-name: foldHalf;
+}
+
+.refolding .flap2 {
+  z-index: 3;
+  animation-name: foldQuarter;
+}
+
+.refolding .flap1 {
+  z-index: 4;
+  animation-name: foldEighth;
+}
+
+@keyframes foldHalf {
   0% {
     opacity: 1;
+    clip-path: inset(0);
     transform: perspective(1400px) rotateX(0deg);
-    filter: url(#torn-paper) brightness(1);
+    animation-timing-function: ease-in-out;
   }
-  50% {
-    filter: url(#torn-paper) brightness(0.82);
+  33% {
+    clip-path: inset(0);
+    transform: perspective(1400px) rotateX(178deg);
+  }
+  33.1%,
+  66% {
+    opacity: 1;
+    clip-path: inset(50% 0 0 0);
+    transform: perspective(1400px) rotateX(178deg);
+  }
+  66.1%,
+  100% {
+    opacity: 0;
+    transform: perspective(1400px) rotateX(178deg);
+  }
+}
+
+@keyframes foldQuarter {
+  0%,
+  33% {
+    opacity: 0;
+    clip-path: inset(0);
+    transform: perspective(1400px) rotateX(0deg);
+  }
+  33.1% {
+    opacity: 1;
+    clip-path: inset(0);
+    transform: perspective(1400px) rotateX(0deg);
+    animation-timing-function: ease-in-out;
+  }
+  66% {
+    clip-path: inset(0);
+    transform: perspective(1400px) rotateX(178deg);
+  }
+  66.1%,
+  100% {
+    opacity: 1;
+    clip-path: inset(50% 0 0 0);
+    transform: perspective(1400px) rotateX(178deg);
+  }
+}
+
+@keyframes foldEighth {
+  0%,
+  66% {
+    opacity: 0;
+    transform: perspective(1400px) rotateX(0deg);
+  }
+  66.1% {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(0deg);
+    animation-timing-function: ease-in-out;
   }
   100% {
     opacity: 1;
     transform: perspective(1400px) rotateX(178deg);
-    filter: url(#torn-paper) brightness(1);
   }
 }
 
