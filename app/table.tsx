@@ -190,7 +190,6 @@ export default function Table() {
       )}
 
       {card && (
-        <div className={styles.cardStack}>
         <div className={`${styles.pin} ${refolding ? styles.refolding : ""}`}>
           {/* Triggered: the card unfolds from the folded note's size (unfold.ts).
               Done: these flaps fold it back up to 1/8, step by step (CSS .refolding). */}
@@ -240,25 +239,15 @@ export default function Table() {
                     </button>
                   ))}
                 </div>
+                {game.chosen !== null && (
+                  <>
+                    <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
+                    <button className={styles.primary} onClick={done}>Done</button>
+                  </>
+                )}
               </>
             )}
           </article>
-        </div>
-        {/* Picking an option folds one more strip of paper out from behind the bottom of the
-            card, carrying Done; taking the choice back (or pressing Done) folds it away again.
-            The card itself never changes size, so its creases stay where they are. */}
-        {game.revealed && (
-          <div className={`${styles.doneWrap} ${game.chosen !== null && !refolding ? styles.doneOpen : ""}`} inert={game.chosen === null || refolding}>
-            <div className={styles.doneFold}>
-              <div className={styles.doneMask}>
-              <div className={`${styles.doneFlap} ${styles.paper}`}>
-                <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
-                <button className={styles.primary} onClick={done}>Done</button>
-              </div>
-              </div>
-            </div>
-          </div>
-        )}
         </div>
       )}
     </section>
