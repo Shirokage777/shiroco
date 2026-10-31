@@ -386,9 +386,9 @@ function cables(points, colours) {
 // worked into the edges, spots of dirt, a little rust and fine scratches.
 // A cabinet standing off the wall (onBox) keeps all of it on its own face, so nothing runs
 // across its edge onto the concrete, its grime is softer and browner, and its edges catch
-// the light; a flat sign may share its grime with the wall.
+// the light; a flat sign may share its grime with the wall. `dirt` scales how heavy it is.
 let boxClip = 0;
-function weatherBox(x, y, w, h, rx, onBox = false) {
+function weatherBox(x, y, w, h, rx, onBox = false, dirt = 1) {
   const face = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
   if (onBox) {
     const id = `box${boxClip++}`;
@@ -397,11 +397,15 @@ function weatherBox(x, y, w, h, rx, onBox = false) {
   over(face, "paintWear", 0.6);
   over(face, "pipePatches", 0.9);
   over(face, "pipePits", 1);
-  over(face, "faceStreaks", fb(0.6, 0.85));
+  over(face, "faceStreaks", fb(0.6, 0.85) * dirt);
   add(face.replace("/>", ` fill="url(#boxGrime)"/>`));
   add(`<rect x="${x + 2}" y="${y}" width="${w - 4}" height="${f(Math.min(10, h * 0.08))}" fill="#8a7f6c" opacity="${f(fb(0.25, 0.45))}" filter="url(#dusty)"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="0.6" filter="url(#edgeGrime)"/>`);
-  if (onBox) spots(x, y, w, h, Math.round((w * h) / 1100), "#2a2117", [0.18, 0.42]);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="${f(0.6 * dirt)}" filter="url(#edgeGrime)"/>`);
+  if (onBox) {
+    // Stains and mould, brown and dark green, kept to the box's face.
+    spots(x, y, w, h, Math.round(((w * h) / 700) * dirt), "#2a2117", [0.2, 0.5].map((o) => o * dirt));
+    spots(x, y, w, h, Math.round(((w * h) / 1600) * dirt), "#1f271a", [0.25, 0.55].map((o) => o * dirt));
+  }
   else spots(x, y, w, h, Math.round((w * h) / 1100));
   for (let i = 0, n = Math.floor(fb(0, 2.5)); i < n; i++) {
     const ex = frand() < 0.5 ? x + fb(0, 6) : x + w - fb(0, 6);
@@ -470,7 +474,7 @@ function vent(x, y, w, h) {
     add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2.5" fill="#8a7f6c" opacity="${f(fb(0.3, 0.6))}" filter="url(#dusty)"/>`);
     if (frand() < 0.15) bloom(x + fb(14, w - 14), sy + 8, fb(4, 10), 2);
   }
-  weatherBox(x, y, w, h, 3);
+  weatherBox(x, y, w, h, 3, true, 0.45);
   for (const [sx, sy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + h - 6], [x + w - 6, y + h - 6]]) bolt(sx, sy, false);
   // Soot blown out of the vent onto the wall above it.
   add(`<ellipse cx="${x + w / 2}" cy="${y - 20}" rx="${w * 0.6}" ry="60" fill="#0a0908" fill-opacity="0.32" filter="url(#sooty)"/>`);
