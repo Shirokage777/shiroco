@@ -10,10 +10,12 @@
 .pin {
   position: relative;
   filter: drop-shadow(0 8px 12px #000b) drop-shadow(0 1px 1px #0008);
+  /* Its own layer: the shadow is drawn by the graphics chip, and scrolling only moves it. */
+  will-change: transform;
 }
 
 /* Old, dirty paper. The note's text sits on the element; the paper itself is the
-   ::before layer behind it, so the torn-edge filter frays the paper but never the text.
+   ::before layer behind it, so the torn outline cuts the paper but never the text.
    All dirt is generated noise (SVG feTurbulence), so there are no image files. */
 .paper {
   position: relative;
@@ -26,6 +28,8 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  /* The torn outline, worked out once per note size (torn-edge.ts, set by torn-edges.tsx). */
+  clip-path: var(--torn, none);
 }
 
 /* The paper look of every note. */
@@ -44,12 +48,9 @@
     radial-gradient(ellipse 120px 80px at 100% 0%, #2e201077, transparent),
     radial-gradient(ellipse 130px 90px at 0% 100%, #2e201088, transparent),
     radial-gradient(ellipse at 50% 45%, transparent 50%, #4a35186b 100%);
-  /* The three creases sit in a layer as tall as --crease-h: the card's height when it was
-     opened (set in table.tsx). When Done appears and the card grows, they stay put. */
-  background-size: 100% var(--crease-h, 100%), 100% var(--crease-h, 100%), 100% var(--crease-h, 100%), 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   box-shadow: inset 0 0 22px #3a2a1299, inset 0 0 4px #2a1d0ccc;
-  filter: url(#torn-paper);
 }
 
 /* Setup: a clipboard notice */
@@ -234,7 +235,9 @@
 
 .table .chosen {
   background: #b8ab8f66;
-  border: 2px solid var(--rust-dark);
+  /* A 2px frame without changing the button's size (border 1px + inset ring): the card keeps its height. */
+  border-color: var(--rust-dark);
+  box-shadow: inset 0 0 0 1px var(--rust-dark), 0 3px 0 #6e351966;
 }
 
 .table .dimmed {
@@ -248,6 +251,17 @@
 .hint {
   font-size: 14px;
   font-style: italic;
+}
+
+/* Below the options: the hint and Done, in place from the start, shown once an option is chosen. */
+.finish,
+.waiting {
+  display: grid;
+  gap: 14px;
+}
+
+.waiting {
+  visibility: hidden;
 }
 
 .table button:disabled {
