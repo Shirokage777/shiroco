@@ -528,18 +528,3 @@
     animation: none;
   }
 }
-
-
-/* A crease across the card, edge to edge (through the side padding), drawn like the
-   paper's own creases. Takes no room. */
-.crease {
-  height: 3px;
-  margin: 0 -22px -3px;
-  background: linear-gradient(#00000026, #ffffff2b);
-}
-
-@media (min-width: 768px) {
-  .crease {
-    margin: 0 -34px -3px;
-  }
-}

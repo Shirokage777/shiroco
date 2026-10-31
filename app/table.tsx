@@ -248,8 +248,6 @@ export default function Table() {
                 </div>
                 {game.chosen !== null && (
                   <>
-                    {/* A fold of its own above Done; the card's other creases stay where they are. */}
-                    <div className={styles.crease} aria-hidden="true" />
                     <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
                     <button className={styles.primary} onClick={done}>Done</button>
                   </>
