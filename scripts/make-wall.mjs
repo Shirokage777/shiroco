@@ -237,9 +237,24 @@ function bolt(x, y, wall = true) {
   if (wall && frand() < 0.2) bleed(x, y + 3, 0.5);
 }
 
-// The surface of a pipe along its length: metal streaks, shading, dust on top.
-function pipeSurface(shape, vertical) {
-  over(shape, vertical ? "metalV" : "metalH", 0.9);
+// The surface of a pipe, worn like the metal buttons: patches of grime and pits with no
+// direction to them, and random scratches, light where they cut through the dirt to the
+// metal and dark where they hold it.
+function pipeSurface(vertical, at, d, from, to) {
+  const shape = vertical ? `<rect x="${at}" y="${from}" width="${d}" height="${to - from}"/>` : `<rect x="${from}" y="${at}" width="${to - from}" height="${d}"/>`;
+  over(shape, "pipePatches", 0.95);
+  over(shape, "pipePits", 1);
+  const clampTo = (v) => Math.min(at + d - 1.5, Math.max(at + 1.5, v));
+  for (let i = 0, n = Math.round((to - from) / 22); i < n; i++) {
+    const p = fb(from, to);
+    const q = fb(at + 2, at + d - 2);
+    const len = fb(3, Math.min(28, d * 1.4));
+    const ang = fb(0, Math.PI);
+    const [dp, dq] = [Math.cos(ang) * len, Math.sin(ang) * len * 0.6];
+    const light = frand() < 0.7;
+    const [x1, y1, x2, y2] = vertical ? [clampTo(q), p, clampTo(q + dq), p + dp] : [p, clampTo(q), p + dp, clampTo(q + dq)];
+    add(`<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${light ? "#e6e1d6" : "#0c0a08"}" stroke-opacity="${f(light ? fb(0.08, 0.22) : fb(0.12, 0.25))}" stroke-width="${f(fb(0.5, 1.1))}" stroke-linecap="round"/>`);
+  }
 }
 
 // A pipe run: sections joined by couplings at irregular spacing, each section weathered on
@@ -251,7 +266,7 @@ function pipe({ vertical = false, at, d, from = 0, to = vertical ? H : W, wrap =
   // Shadow on the wall, the pipe itself, then its surface.
   add((vertical ? `<rect x="${at + d * 0.5}" y="${from}" width="${d}" height="${len}"` : `<rect x="${from}" y="${at + d * 0.6}" width="${len}" height="${d}"`) + ` fill="#000" fill-opacity="0.6" filter="url(#shadow)"/>`);
   add(rect(from, to).replace("/>", ` fill="url(#${vertical ? "pipeV" : "pipeH"})"/>`));
-  pipeSurface(rect(from, to), vertical);
+  pipeSurface(vertical, at, d, from, to);
   // Couplings: irregular spacing, one on the wrap edge for full runs.
   const joints = wrap ? [from] : [];
   for (let p = from + fb(140, 380); p < to - 60; p += fb(260, 560)) joints.push(p);
@@ -270,7 +285,7 @@ function pipe({ vertical = false, at, d, from = 0, to = vertical ? H : W, wrap =
     const shine = vertical ? `<rect x="${at + d * 0.3}" y="${f(a)}" width="${f(Math.max(1.5, d * 0.08))}" height="${f(b - a)}"/>` : `<rect x="${f(a)}" y="${at + d * 0.3}" width="${f(b - a)}" height="${f(Math.max(1.5, d * 0.08))}"/>`;
     add(shine.replace("/>", ` fill="#d8d2c4" opacity="${f(fb(0.12, 0.28))}" filter="url(#broken)"/>`));
     // Dust settles along the top of horizontal pipes.
-    if (!vertical) add(`<rect x="${f(a)}" y="${at}" width="${f(b - a)}" height="${f(d * 0.18)}" fill="#8a7f6c" opacity="${f(fb(0.15, 0.35))}" filter="url(#broken)"/>`);
+    if (!vertical) add(`<rect x="${f(a)}" y="${at}" width="${f(b - a)}" height="${f(d * 0.18)}" fill="#8a7f6c" opacity="${f(fb(0.15, 0.3))}" filter="url(#dusty)"/>`);
     // Water runs off the underside: drips mostly at the low points, a few anywhere.
     if (!vertical) for (let k = 0, n = Math.floor(fb(0, (b - a) / 260)); k < n; k++) drip(fb(a, b), at + d, fb(20, 120), frand() < 0.4);
   }
@@ -526,8 +541,9 @@ const defs = `<defs>
 <filter id="blotch0" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="81"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.5" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
 <filter id="blotch1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="83"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 -0.45" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
 <filter id="blotch2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="2" seed="89"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.4 0 0 0 -0.6" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
-<filter id="metalH"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.45" numOctaves="2" seed="51"/><feColorMatrix values="0 0 0 0 0.75 0 0 0 0 0.73 0 0 0 0 0.68 0 0 0 0 0" result="c"/><feTurbulence type="fractalNoise" baseFrequency="0.004 0.45" numOctaves="2" seed="51" result="t"/><feColorMatrix in="t" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.4 0 0 0 -0.62" result="dark"/><feComposite in="dark" in2="SourceGraphic" operator="in"/></filter>
-<filter id="metalV"><feTurbulence type="fractalNoise" baseFrequency="0.45 0.004" numOctaves="2" seed="53" result="t"/><feColorMatrix in="t" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.4 0 0 0 -0.62" result="dark"/><feComposite in="dark" in2="SourceGraphic" operator="in"/></filter>
+<filter id="pipePatches"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="21"/><feColorMatrix values="0 0 0 0 0.07 0 0 0 0 0.055 0 0 0 0 0.04 2.1 0 0 0 -0.95"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="pipePits"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 3.4 0 0 0 -2.2"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="dusty"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="63"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.8" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
 <filter id="broken"><feTurbulence type="fractalNoise" baseFrequency="0.05 0.2" numOctaves="2" seed="57"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.6 0 0 0 -1" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
 <filter id="crackFx" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse"><feMorphology in="SourceAlpha" operator="dilate" radius="1.6"/><feGaussianBlur stdDeviation="1.6"/><feColorMatrix values="0 0 0 0 0.04 0 0 0 0 0.035 0 0 0 0 0.03 0 0 0 0.32 0" result="halo"/><feOffset in="SourceAlpha" dx="0.7" dy="1.1"/><feComposite in2="SourceAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0.84 0 0 0 0 0.82 0 0 0 0 0.78 0 0 0 0.09 0" result="lip"/><feMerge><feMergeNode in="halo"/><feMergeNode in="lip"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 <filter id="paintWear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="4" seed="59"/><feColorMatrix values="0 0 0 0 0.2 0 0 0 0 0.19 0 0 0 0 0.17 2 0 0 0 -1.05"/><feComposite in2="SourceGraphic" operator="in"/></filter>
