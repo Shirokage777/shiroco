@@ -36,7 +36,7 @@ export default function SignOut() {
         <div className={`${table.ask} ${table.paper}`} role="alertdialog" aria-label="Sign out?">
           <span>Do you really want to sign out?</span>
           <button className={table.primary} onClick={() => close(signOut)}>Yes, sign out</button>
-          <button className={table.secondary} onClick={() => close()}>Cancel</button>
+          <button className={`${table.secondary} ${table.cancel}`} onClick={() => close()}>Cancel</button>
         </div>
       </div>
     </div>

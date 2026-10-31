@@ -174,7 +174,7 @@ export default function Table() {
           <div className={`${styles.ask} ${styles.paper}`} role="alertdialog" aria-label="Start a new game?">
             <span>Start a new game? The deck will be reshuffled.</span>
             <button className={styles.primary} onClick={() => closeAsk(() => setGame(null))}>Yes, new game</button>
-            <button className={styles.secondary} onClick={() => closeAsk()}>Cancel</button>
+            <button className={`${styles.secondary} ${styles.cancel}`} onClick={() => closeAsk()}>Cancel</button>
           </div>
         </div>
       )}
@@ -239,12 +239,16 @@ export default function Table() {
                     </button>
                   ))}
                 </div>
-                {game.chosen !== null && (
-                  <>
-                    <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
-                    <button className={styles.primary} onClick={done}>Done</button>
-                  </>
-                )}
+                {/* Picking an option unfolds the bottom of the note a little more to show Done;
+                    taking the choice back folds it away again. */}
+                <div className={`${styles.doneWrap} ${game.chosen !== null ? styles.doneOpen : ""}`} inert={game.chosen === null}>
+                  <div className={styles.doneFold}>
+                    <div className={styles.doneInner}>
+                      <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
+                      <button className={styles.primary} onClick={done}>Done</button>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </article>
