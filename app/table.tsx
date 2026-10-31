@@ -9,6 +9,7 @@ import { unfold } from "./unfold";
 import styles from "./table.module.css";
 
 const REFOLD_MS = 1500; // the refold animation (table.module.css)
+export const SHRINK_MS = 260; // a question note shrinking back into its button (table.module.css)
 
 const stillWanted = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -23,8 +24,10 @@ export default function Table() {
   const [options, setOptions] = useState<GameOptions>({ leaveOutMature: false, coop: false });
   const [game, setGame] = useState<GameState | null>(null);
   const [askNewGame, setAskNewGame] = useState(false);
+  const [closingAsk, setClosingAsk] = useState(false);
   const [busy, setBusy] = useState(false); // a turn or refold is running: ignore further taps
   const [refolding, setRefolding] = useState(false);
+  const setupRef = useRef<HTMLElement>(null);
   const drawRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLElement>(null);
   const openRef = useRef<HTMLElement>(null);
@@ -63,6 +66,30 @@ export default function Table() {
       turnInNext.current = true;
       setGame((g) => (g ? change(g) : g));
     });
+  }
+
+  // Start game: the setup note turns over into the draw note.
+  function startGame() {
+    if (busy || !cards) return;
+    const setup = setupRef.current;
+    if (!setup || stillWanted()) return setGame(newGame(cards, options));
+    setBusy(true);
+    turnAway(setup, () => {
+      turnInNext.current = true;
+      setGame(newGame(cards, options));
+    });
+  }
+
+  // Either answer to "New game?" first shrinks the note back into the button it came from.
+  function closeAsk(then?: () => void) {
+    const finish = () => {
+      setClosingAsk(false);
+      setAskNewGame(false);
+      then?.();
+    };
+    if (stillWanted()) return finish();
+    setClosingAsk(true);
+    window.setTimeout(finish, SHRINK_MS);
   }
 
   // Triggered: the folded note is turned over, bending as it goes, then it unfolds (unfold.ts).
@@ -112,7 +139,7 @@ export default function Table() {
   if (!game) {
     return (
       <div className={styles.pin}>
-        <section className={`${styles.setup} ${styles.paper}`}>
+        <section ref={setupRef} className={`${styles.setup} ${styles.paper}`}>
           <label>
             <input type="checkbox" checked={options.leaveOutMature} onChange={(e) => setOptions({ ...options, leaveOutMature: e.target.checked })} />
             Leave out mature cards
@@ -121,7 +148,7 @@ export default function Table() {
             <input type="checkbox" checked={options.coop} onChange={(e) => setOptions({ ...options, coop: e.target.checked })} />
             Co-op game (leave out cards not used in co-op)
           </label>
-          <button className={styles.primary} onClick={() => setGame(newGame(cards, options))}>
+          <button className={styles.primary} onClick={startGame}>
             Start game · {playable(cards, options).length} cards
           </button>
         </section>
@@ -143,17 +170,17 @@ export default function Table() {
 
       {/* Asked on the page, not with a browser pop-up: some browsers block or auto-cancel pop-ups. */}
       {askNewGame && (
-        <div className={`${styles.pin} ${styles.growFromTopRight}`}>
+        <div className={`${styles.pin} ${closingAsk ? styles.shrinkToTopRight : styles.growFromTopRight}`}>
           <div className={`${styles.ask} ${styles.paper}`} role="alertdialog" aria-label="Start a new game?">
             <span>Start a new game? The deck will be reshuffled.</span>
-            <button className={styles.primary} onClick={() => { setAskNewGame(false); setGame(null); }}>Yes, new game</button>
-            <button className={styles.secondary} onClick={() => setAskNewGame(false)}>Cancel</button>
+            <button className={styles.primary} onClick={() => closeAsk(() => setGame(null))}>Yes, new game</button>
+            <button className={styles.secondary} onClick={() => closeAsk()}>Cancel</button>
           </div>
         </div>
       )}
 
       {!card && (
-        <div className={`${styles.pin} ${styles.clipped}`}>
+        <div className={`${styles.pin}`}>
           <div ref={drawRef} className={`${styles.drawNote} ${styles.paper}`}>
             <button className={styles.primary} onClick={() => turnTo(drawRef.current, drawCard)}>
               Draw card
@@ -163,7 +190,7 @@ export default function Table() {
       )}
 
       {card && (
-        <div className={`${styles.pin} ${styles.clipped} ${refolding ? styles.refolding : ""}`}>
+        <div className={`${styles.pin} ${refolding ? styles.refolding : ""}`}>
           {/* Triggered: the card unfolds from the folded note's size (unfold.ts).
               Done: these flaps fold it back up to 1/8, step by step (CSS .refolding). */}
           {game.revealed && (

@@ -1,6 +1,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Worn metal for every button: generated noise, no image files.
+     brush: fine horizontal grain; scuffs: dark nicks and scratches; rust: blotchy corrosion;
+     wear: rubbed-bright patches where hands touch it most. */
+  --metal-brush: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='80'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.55 0 0 0 -0.26'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+  --metal-scuffs: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='120'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.06 0.75' numOctaves='3' seed='8'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.05 0 0 0 0 0.04 3.2 0 0 0 -2.05'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+  --metal-rust: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='130'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.045' numOctaves='4' seed='5'/><feColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.2 0 0 0 0 0.08 2.6 0 0 0 -1.35'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+  --metal-wear: radial-gradient(ellipse 60% 70% at 50% 45%, #ffffff1f, transparent 70%);
 }
 
 @media (prefers-color-scheme: dark) {

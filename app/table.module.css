@@ -13,21 +13,6 @@
   transform: rotate(-0.5deg);
 }
 
-.clipped::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  top: -9px;
-  left: 50%;
-  width: 64px;
-  height: 18px;
-  margin-left: -32px;
-  background: #7c7a74;
-  border: 1px solid #4f4d49;
-  border-radius: 3px;
-  box-shadow: 0 2px 3px #0007, inset 0 -3px 0 #5d5b56;
-}
-
 /* Old, dirty paper. The note's text sits on the element; the paper itself is the
    ::before layer behind it, so the torn-edge filter frays the paper but never the text.
    All dirt is generated noise (SVG feTurbulence), so there are no image files. */
@@ -97,7 +82,7 @@
   text-transform: uppercase;
 }
 
-/* The card: a notice clipped to the bunker wall */
+/* The card: a notice on the bunker wall */
 .card {
   display: grid;
   gap: 14px;
@@ -127,61 +112,67 @@
   gap: 10px;
 }
 
+/* Every button is an old metal plate: scuffed, rubbed, a bit rusty, never shiny.
+   It sits raised on its edge (--edge) and sinks in while pressed, losing the edge.
+   Tin for the plain ones (options, Not Triggered), rust-red for the main action,
+   steel for the rest. Textures come from globals.css (--metal-*). */
 .setup button,
 .table button {
+  --plate: linear-gradient(180deg, #c9c2b0, #958c78);
+  --bevel: inset 0 1px 0 #ffffff59, inset 0 -2px 0 #00000045, inset 0 0 12px #3b2f1f73;
+  --edge: #3f3b35;
   font: inherit;
   font-size: 17px;
   padding: 12px 14px;
   border-radius: 4px;
-  border: 1px solid var(--rust);
-  background: #ffffff14;
-  color: inherit;
+  border: 1px solid #5d5850;
+  background-color: #b3ab98;
+  background-image: var(--metal-scuffs), var(--metal-rust), var(--metal-wear), var(--metal-brush), var(--plate);
+  color: var(--ink);
   cursor: pointer;
   text-align: left;
-  /* Every button sits slightly raised and sinks in while pressed (see :active below). */
-  box-shadow: 0 3px 0 #6e351966;
+  box-shadow: var(--bevel), 0 3px 0 var(--edge);
 }
 
 .setup button:active,
 .table button:active {
   transform: translateY(2px);
-  box-shadow: none;
+  box-shadow: var(--bevel);
 }
 
-/* Stamped buttons: rust for the main action, gray for the rest. */
+/* Stamped plates: rust-red for the main action, steel for the rest. */
 .setup .primary,
 .table .primary,
 .table .secondary {
+  --plate: linear-gradient(180deg, #a55832, #6a3318);
+  --bevel: inset 0 1px 0 #ffffff3d, inset 0 -2px 0 #00000059, inset 0 0 14px #00000073;
+  --edge: #3a1b0b;
   font-family: var(--font-stamp), monospace;
-  background: var(--rust);
-  border-color: var(--rust-dark);
-  color: #f1e9dc;
+  background-color: var(--rust);
+  background-image: var(--metal-scuffs), var(--metal-rust), var(--metal-wear), var(--metal-brush), var(--plate);
+  border-color: #3a1b0b;
+  color: #f0e2cf;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 19px;
   padding: 14px;
-  box-shadow: 0 3px 0 var(--rust-dark);
+  /* Letters pressed into the metal. */
+  text-shadow: 0 -1px 0 #00000099, 0 1px 0 #ffffff1f;
 }
 
 .table .secondary {
-  background: var(--steel);
-  border-color: var(--steel-dark);
-  box-shadow: 0 3px 0 var(--steel-dark);
+  --plate: linear-gradient(180deg, #8f8d87, #4c4a45);
+  --edge: #262522;
+  background-color: var(--steel);
+  border-color: #2c2b28;
+  color: #ebe5d9;
 }
 
 .status .secondary {
   font-size: 15px;
   padding: 8px 12px;
   flex: none;
-}
-
-.setup .primary:active,
-.table .primary:active,
-.table .secondary:active,
-.table .quiet:active {
-  transform: translateY(2px);
-  box-shadow: none;
 }
 
 .option,
@@ -202,7 +193,7 @@
 }
 
 .table .chosen {
-  background: #b8ab8f66;
+  --plate: linear-gradient(180deg, #b5a98e, #857961);
   border: 2px solid var(--rust-dark);
 }
 
@@ -253,8 +244,7 @@
   letter-spacing: 0.05em;
   padding: 14px;
   color: var(--rust-dark);
-  border: 1px solid var(--rust);
-  background: #ffffff26;
+  text-shadow: 0 1px 0 #ffffff59;
 }
 
 /* Fold flaps: the paper's back, swinging along a fold line. The unfold makes its own
@@ -458,6 +448,33 @@
   transform-origin: 50% 100%;
 }
 
+.shrinkToTopRight,
+.shrinkToBottom {
+  animation: shrinkNote 0.26s cubic-bezier(0.5, 0, 0.75, 0.3) both;
+}
+
+.shrinkToTopRight {
+  transform-origin: 92% 0;
+}
+
+.shrinkToBottom {
+  transform-origin: 50% 100%;
+}
+
+@keyframes shrinkNote {
+  from {
+    opacity: 1;
+    transform: rotate(-0.5deg) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: rotate(-0.5deg) scale(0.12);
+  }
+}
+
 @keyframes growNote {
   from {
     opacity: 0;
@@ -474,7 +491,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .growFromTopRight,
-  .growFromBottom {
+  .growFromBottom,
+  .shrinkToTopRight,
+  .shrinkToBottom {
     animation: none;
   }
 }
