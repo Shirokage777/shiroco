@@ -136,8 +136,8 @@
 
 /* Metal plates, old and worn, never shiny. They sit raised on their edge (--edge) and sink
    in while pressed, keeping only the worn bevel (--bevel). Textures: globals.css.
-   Rust-red (main action): grimy patches, pits, rust, scratches at random angles.
-   Tin (Not Triggered): rubbed and grimy patches, pits, scratches; no rust. Steel (New game, Cancel, Sign out) keeps its brushed look. */
+   Rust-red (main action) and tin (Not Triggered): grimy patches, pits, scratches at
+   random angles; no rust patches, no light patches. Steel (New game, Cancel, Sign out) keeps its brushed look. */
 .setup .primary,
 .table .primary,
 .table .secondary,
@@ -163,9 +163,9 @@
   --edge: #3a1b0b;
   background-color: var(--rust);
   background-image:
-    var(--metal-scratches), var(--metal-pits), var(--metal-rust), var(--metal-patches-dark),
-    var(--metal-wear), linear-gradient(180deg, #a35630, #6c3419);
-  background-size: 300px 90px, auto, auto, auto, auto, auto;
+    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-wear),
+    linear-gradient(180deg, #a35630, #6c3419);
+  background-size: 300px 90px, auto, auto, auto, auto;
   border-color: #3a1b0b;
   color: #f0e2cf;
   text-transform: uppercase;
@@ -186,12 +186,12 @@
 }
 
 /* Cancel (in the New game and Sign out questions): steel like New game, but patchy
-   instead of brushed, and no rust. */
+   instead of brushed: grimy patches, pits, scratches; no rust, no light patches. */
 .table .cancel {
   background-image:
-    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-patches-light),
-    var(--metal-wear), linear-gradient(180deg, #8f8d87, #4c4a45);
-  background-size: 300px 90px, auto, auto, auto, auto, auto;
+    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-wear),
+    linear-gradient(180deg, #8f8d87, #4c4a45);
+  background-size: 300px 90px, auto, auto, auto, auto;
 }
 
 .table .quiet {
@@ -199,9 +199,9 @@
   --edge: #3f3b35;
   background-color: #b3ab98;
   background-image:
-    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-patches-light),
-    var(--metal-wear), linear-gradient(180deg, #c9c2b0, #958c78);
-  background-size: 300px 90px, auto, auto, auto, auto, auto;
+    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-wear),
+    linear-gradient(180deg, #c9c2b0, #958c78);
+  background-size: 300px 90px, auto, auto, auto, auto;
   border: 1px solid #5d5850;
   color: var(--rust-dark);
   letter-spacing: 0.05em;
@@ -527,63 +527,71 @@
   }
 }
 
-/* The Done area: folded away under the options until one is picked. The row grows open
-   while the strip of paper swings down from the fold, like unfolding the note's bottom. */
+/* The Done strip: one more fold of paper hinged at the bottom edge of the card. Folded
+   away it lies up behind the card (hidden by it); picking an option swings it down and
+   the space below the card opens for it. The card above never changes. */
+.cardStack {
+  display: grid;
+}
+
+.cardStack > .pin {
+  z-index: 1; /* the card stays in front of the strip folded up behind it */
+}
+
 .doneWrap {
+  position: relative;
   display: grid;
   grid-template-rows: 0fr;
-  align-self: start; /* close to zero height, not stretched to fill the row */
-  transition: grid-template-rows 0.4s ease;
-}
-
-/* The card's row gap still sits above the folded-away Done area: take it off the padding
-   so the bottom of the card looks as before. */
-.card:has(> .doneWrap) {
-  padding-bottom: 26px;
-  transition: padding-bottom 0.4s ease;
-}
-
-.card:has(> .doneOpen) {
-  padding-bottom: 40px;
-}
-
-@media (min-width: 768px) {
-  .card:has(> .doneWrap) {
-    padding-bottom: 32px;
-  }
-
-  .card:has(> .doneOpen) {
-    padding-bottom: 46px;
-  }
+  transition: grid-template-rows 0.45s ease;
 }
 
 .doneOpen {
   grid-template-rows: 1fr;
 }
 
-/* No padding here: padding would keep the folded-away row from closing to zero. */
 .doneFold {
   min-height: 0;
-  overflow: hidden;
-  transform-origin: 50% 0;
-  transform: perspective(700px) rotateX(-80deg);
-  opacity: 0;
-  transition: transform 0.4s ease, opacity 0.25s ease;
+  filter: drop-shadow(0 8px 12px #000b) drop-shadow(0 1px 1px #0008);
+  transform: rotate(-0.5deg);
 }
 
-.doneInner {
+.doneFlap {
   display: grid;
   gap: 14px;
+  padding: 16px 22px 24px;
+  font-size: 17px;
+  line-height: 1.55;
+  transform-origin: 50% 0;
+  transform: perspective(900px) rotateX(178deg);
+  transition: transform 0.45s ease-in-out;
 }
 
-.doneOpen .doneFold {
-  transform: none;
+.doneOpen .doneFlap {
+  transform: perspective(900px) rotateX(0deg);
+}
+
+/* The writing is on the strip's inner side: hidden while its back faces you, it shows once
+   the strip has swung past half-way, and goes at once when the strip folds away. */
+.doneFlap > * {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.doneOpen .doneFlap > * {
   opacity: 1;
+  transition-delay: 0.22s;
+}
+
+@media (min-width: 768px) {
+  .doneFlap {
+    padding: 18px 34px 28px;
+    font-size: 18px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .doneWrap,
-  .doneFold {
+  .doneFlap {
     transition: none;
   }
 }
