@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
+import { hazardPeriod } from "@/lib/hazard";
 import type { Card } from "@/lib/types";
 import { flipOver, turnAway, turnIn } from "./flip";
 import { Symbol, SymbolText } from "./symbol-text";
@@ -31,6 +32,7 @@ export default function Table() {
   const drawRef = useRef<HTMLDivElement>(null);
   const noteRef = useRef<HTMLElement>(null);
   const openRef = useRef<HTMLElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
   const turnInNext = useRef(false);
   const unfoldFrom = useRef(0); // height of the folded note that was just turned over
 
@@ -55,6 +57,18 @@ export default function Table() {
   useLayoutEffect(() => {
     const open = openRef.current;
     if (game?.revealed && open) open.style.setProperty("--crease-h", `${open.offsetHeight}px`);
+  }, [game?.revealed]);
+
+  // Hazard stripes above the options: the stripe spacing is fitted to the width, so each
+  // stripe ends in the same small black triangle at both ends (top right, bottom left).
+  useLayoutEffect(() => {
+    const options = optionsRef.current;
+    if (!game?.revealed || !options) return;
+    const fit = () => options.style.setProperty("--hazard-period", `${hazardPeriod(options.clientWidth)}px`);
+    fit();
+    const watch = new ResizeObserver(fit);
+    watch.observe(options);
+    return () => watch.disconnect();
   }, [game?.revealed]);
 
   // After Triggered: the card unfolds from the size of the note that was turned over.
@@ -233,7 +247,7 @@ export default function Table() {
             {game.revealed && (
               <>
                 <p><SymbolText text={card.text} /></p>
-                <div className={styles.options}>
+                <div ref={optionsRef} className={styles.options}>
                   {card.options.map((option, i) => (
                     <Fragment key={i}>
                     {/* A black hazard stripe (the top bar's pattern, yellow left out) marks each option. */}

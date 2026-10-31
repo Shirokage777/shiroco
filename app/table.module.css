@@ -5,12 +5,11 @@
   width: min(600px, 100%);
 }
 
-/* A note pinned to the wall. The wrapper carries the shadow and tilt,
-   so the shadow follows the frayed outline of the paper inside it. */
+/* A note on the wall. The wrapper carries the shadow, so it follows the frayed outline of
+   the paper inside it. Notes hang straight, so every note's edges line up vertically. */
 .pin {
   position: relative;
   filter: drop-shadow(0 8px 12px #000b) drop-shadow(0 1px 1px #0008);
-  transform: rotate(-0.5deg);
 }
 
 /* Old, dirty paper. The note's text sits on the element; the paper itself is the
@@ -465,8 +464,7 @@
 }
 
 /* Confirmation notes grow out of the button that asked for them: New game sits top right,
-   Sign out at the bottom. The growing is on the note inside the pin, so the pin keeps the
-   same tilt about its centre as every other note and the notes line up exactly. */
+   Sign out at the bottom. The growing is on the note inside the pin. */
 .growFromTopRight,
 .growFromBottom {
   animation: growNote 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
@@ -531,8 +529,13 @@
 }
 
 /* Above each option: the page's hazard stripe (page.module.css .hazard), black only, the
-   yellow left see-through, as wide as the note's text. */
+   yellow left see-through, as wide as the note's text. One stripe per tile, centred, with
+   the spacing fitted to the width (--hazard-period, lib/hazard.ts) so both ends are the same
+   small black triangle: top right and bottom left. */
 .hazardRule {
   height: 14px;
-  background: repeating-linear-gradient(45deg, transparent 0 14px, #1d1d1b 14px 28px);
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 14' preserveAspectRatio='none'><polygon points='0,0 14,0 28,14 14,14' fill='%231d1d1b'/></svg>");
+  background-size: var(--hazard-period, 28px) 14px;
+  background-position: center;
+  background-repeat: repeat-x;
 }

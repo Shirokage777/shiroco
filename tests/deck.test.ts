@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { choose, discardCurrent, drawCard, newGame, playable, reveal, shuffle, splitSymbols, type GameOptions } from "@/lib/deck";
 import type { Card } from "@/lib/types";
+import { hazardPeriod } from "@/lib/hazard";
 
 const card = (id: string, extra: Partial<Card> = {}): Card => ({
   id, set: "test", title: id, trigger: "If:", text: "t", options: [{ label: "Option 1", text: "a" }, { label: "Option 2", text: "b" }],
@@ -117,5 +118,18 @@ describe("card text", () => {
       { text: " item card:" },
     ]);
     expect(splitSymbols("No symbols here.")).toEqual([{ text: "No symbols here." }]);
+  });
+});
+
+describe("hazard stripes", () => {
+  it("fit the width so both ends end in the same black triangle", () => {
+    for (const width of [260, 300, 345, 480, 532]) {
+      const period = hazardPeriod(width);
+      const periods = width / period - 11 / 7;
+      expect(Math.abs(periods - Math.round(periods))).toBeLessThan(1e-9);
+      expect(Math.round(periods) % 2).toBe(0);
+      expect(period).toBeGreaterThan(22);
+      expect(period).toBeLessThan(36);
+    }
   });
 });
