@@ -25,6 +25,7 @@ export default function Home() {
       <footer className={styles.footer}>
         <SignOut />
       </footer>
+      <div className={`${styles.hazard} ${styles.hazardBottom}`} aria-hidden="true" />
     </div>
   );
 }
