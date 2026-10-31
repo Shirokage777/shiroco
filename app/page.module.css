@@ -19,10 +19,11 @@
   grid-template-rows: auto 1fr auto;
   color: var(--chalk);
   font-family: var(--font-typewriter), "Courier New", monospace;
-  background-color: #3b3936;
-  /* The bunker wall: a basement of riveted steel plates, grimy at every seam, with pipes, a
-     valve, a junction box and a vent (public/bunker-wall.svg, made by scripts/make-wall.mjs),
-     plus fine pits and scratches at screen scale and a vignette as if lit by one lamp. */
+  background-color: #4a4844;
+  /* The bunker wall: grey concrete blocks, grimy at every joint and stained with water, with
+     pipes, cables, a breaker panel, a junction box, a vent and a warning sign
+     (public/bunker-wall.svg, made by scripts/make-wall.mjs), plus fine pits at screen scale
+     and a vignette as if lit by one lamp. */
   background-image:
     var(--metal-pits), url("/bunker-wall.svg"),
     radial-gradient(ellipse at 50% 35%, transparent 40%, #000000a0);
