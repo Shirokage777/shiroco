@@ -19,7 +19,7 @@ export default function Home() {
           like torn, worn paper. Used by .paper::before in table.module.css. */}
       <svg width="0" height="0" aria-hidden="true" style={{ position: "absolute" }}>
         <filter id="torn-paper" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="5" seed="11" result="noise" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="11" result="noise" />
           <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </svg>

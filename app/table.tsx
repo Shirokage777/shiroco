@@ -17,7 +17,6 @@ export default function Table() {
   const [options, setOptions] = useState<GameOptions>({ leaveOutMature: false, coop: false });
   const [game, setGame] = useState<GameState | null>(null);
   const [askNewGame, setAskNewGame] = useState(false);
-  const openRef = useRef<HTMLElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,13 +25,6 @@ export default function Table() {
       .then((body) => setCards(body.cards))
       .catch(() => setFailed(true));
   }, []);
-
-  // The card's creases are laid out on its height as opened, so they stay put when Done
-  // appears below the options and the card grows (table.module.css, --crease-h).
-  useLayoutEffect(() => {
-    const open = openRef.current;
-    if (game?.revealed && open) open.style.setProperty("--crease-h", `${open.offsetHeight}px`);
-  }, [game?.revealed]);
 
   // Hazard stripes above the options: the stripe spacing is fitted to the width, so each
   // stripe ends in the same small black triangle at both ends (top right, bottom left).
@@ -108,7 +100,6 @@ export default function Table() {
         <div className={styles.pin}>
           <article
             key={game.revealed ? "open" : "folded"}
-            ref={game.revealed ? openRef : undefined}
             className={`${styles.card} ${styles.paper}`}
             aria-live="polite"
           >
@@ -148,12 +139,12 @@ export default function Table() {
                     </Fragment>
                   ))}
                 </div>
-                {game.chosen !== null && (
-                  <>
-                    <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
-                    <button className={styles.primary} onClick={() => change(discardCurrent)}>Done</button>
-                  </>
-                )}
+                {/* Always laid out, hidden until an option is chosen: the card keeps its size, so
+                    Safari never has to redraw the torn paper when Done appears. */}
+                <div className={game.chosen === null ? styles.waiting : styles.finish} aria-hidden={game.chosen === null}>
+                  <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
+                  <button className={styles.primary} onClick={() => change(discardCurrent)} disabled={game.chosen === null}>Done</button>
+                </div>
               </>
             )}
           </article>
