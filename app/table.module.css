@@ -112,61 +112,91 @@
   gap: 10px;
 }
 
-/* Every button is an old metal plate: scuffed, rubbed, a bit rusty, never shiny.
-   It sits raised on its edge (--edge) and sinks in while pressed, losing the edge.
-   Tin for the plain ones (options, Not Triggered), rust-red for the main action,
-   steel for the rest. Textures come from globals.css (--metal-*). */
+/* Plain buttons on the paper (the card's options): outlined in rust, slightly raised,
+   sinking in while pressed. */
 .setup button,
 .table button {
-  --plate: linear-gradient(180deg, #c9c2b0, #958c78);
-  --bevel: inset 0 1px 0 #ffffff59, inset 0 -2px 0 #00000045, inset 0 0 12px #3b2f1f73;
-  --edge: #3f3b35;
   font: inherit;
   font-size: 17px;
   padding: 12px 14px;
   border-radius: 4px;
-  border: 1px solid #5d5850;
-  background-color: #b3ab98;
-  background-image: var(--metal-scuffs), var(--metal-rust), var(--metal-wear), var(--metal-brush), var(--plate);
-  color: var(--ink);
+  border: 1px solid var(--rust);
+  background: #ffffff14;
+  color: inherit;
   cursor: pointer;
   text-align: left;
-  box-shadow: var(--bevel), 0 3px 0 var(--edge);
+  box-shadow: 0 3px 0 #6e351966;
 }
 
 .setup button:active,
 .table button:active {
   transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* Metal plates, old and worn, never shiny. They sit raised on their edge (--edge) and sink
+   in while pressed, keeping only the worn bevel (--bevel). Textures: globals.css.
+   Rust-red (main action) and tin (Not Triggered) are patchy: rubbed and grimy patches, pits,
+   scratches at random angles. Steel (New game, Cancel, Sign out) keeps its brushed look. */
+.setup .primary,
+.table .primary,
+.table .secondary,
+.table .quiet {
+  --bevel: inset 0 1px 0 #ffffff3d, inset 0 -2px 0 #00000059, inset 0 0 14px #00000073;
+  font-family: var(--font-stamp), monospace;
+  text-align: center;
+  font-size: 19px;
+  padding: 14px;
+  box-shadow: var(--bevel), 0 3px 0 var(--edge);
+}
+
+.setup .primary:active,
+.table .primary:active,
+.table .secondary:active,
+.table .quiet:active {
+  transform: translateY(2px);
   box-shadow: var(--bevel);
 }
 
-/* Stamped plates: rust-red for the main action, steel for the rest. */
 .setup .primary,
-.table .primary,
-.table .secondary {
-  --plate: linear-gradient(180deg, #a55832, #6a3318);
-  --bevel: inset 0 1px 0 #ffffff3d, inset 0 -2px 0 #00000059, inset 0 0 14px #00000073;
+.table .primary {
   --edge: #3a1b0b;
-  font-family: var(--font-stamp), monospace;
   background-color: var(--rust);
-  background-image: var(--metal-scuffs), var(--metal-rust), var(--metal-wear), var(--metal-brush), var(--plate);
+  background-image:
+    var(--metal-scratches), var(--metal-pits), var(--metal-rust), var(--metal-patches-dark),
+    var(--metal-patches-light), var(--metal-wear), linear-gradient(180deg, #a35630, #6c3419);
+  background-size: 300px 90px, auto, auto, auto, auto, auto, auto;
   border-color: #3a1b0b;
   color: #f0e2cf;
-  text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 19px;
-  padding: 14px;
   /* Letters pressed into the metal. */
   text-shadow: 0 -1px 0 #00000099, 0 1px 0 #ffffff1f;
 }
 
 .table .secondary {
-  --plate: linear-gradient(180deg, #8f8d87, #4c4a45);
   --edge: #262522;
   background-color: var(--steel);
+  background-image: var(--metal-scuffs), var(--metal-rust), var(--metal-wear), var(--metal-brush), linear-gradient(180deg, #8f8d87, #4c4a45);
   border-color: #2c2b28;
   color: #ebe5d9;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 -1px 0 #00000099, 0 1px 0 #ffffff1f;
+}
+
+.table .quiet {
+  --bevel: inset 0 1px 0 #ffffff59, inset 0 -2px 0 #00000045, inset 0 0 12px #3b2f1f73;
+  --edge: #3f3b35;
+  background-color: #b3ab98;
+  background-image:
+    var(--metal-scratches), var(--metal-pits), var(--metal-rust), var(--metal-patches-dark),
+    var(--metal-patches-light), var(--metal-wear), linear-gradient(180deg, #c9c2b0, #958c78);
+  background-size: 300px 90px, auto, auto, auto, auto, auto, auto;
+  border: 1px solid #5d5850;
+  color: var(--rust-dark);
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 0 #ffffff59;
 }
 
 .status .secondary {
@@ -193,7 +223,7 @@
 }
 
 .table .chosen {
-  --plate: linear-gradient(180deg, #b5a98e, #857961);
+  background: #b8ab8f66;
   border: 2px solid var(--rust-dark);
 }
 
@@ -236,16 +266,6 @@
   }
 }
 
-/* "Not Triggered": same stamped font as Triggered, but a quiet outlined button. */
-.table .quiet {
-  font-family: var(--font-stamp), monospace;
-  text-align: center;
-  font-size: 19px;
-  letter-spacing: 0.05em;
-  padding: 14px;
-  color: var(--rust-dark);
-  text-shadow: 0 1px 0 #ffffff59;
-}
 
 /* Fold flaps: the paper's back, swinging along a fold line. The unfold makes its own
    (unfold.ts); these three serve the refold on Done. Invisible until animated. */
