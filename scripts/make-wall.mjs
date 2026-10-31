@@ -3,8 +3,9 @@
 //
 // Grey concrete blocks of random sizes in staggered rows, set in recessed mortar. Grime
 // gathers dark along every joint; the faces are pitted and grainy, a few corners are chipped
-// and a few blocks cracked, and water stains run down the whole wall. Over the wall run the
-// fittings of a basement: pipes with brackets, flanges and a valve (rusted, as metal is),
+// and some blocks cracked, a few in webs, and water stains run down the whole wall. Over the
+// wall run the fittings of a basement, unmaintained for decades: pipes in rusted sections with
+// couplings, clamps and a valve,
 // cable runs sagging between clips, a breaker panel, a junction box with conduit, a vent, a
 // high-voltage warning sign and a sprayed level marking. A seeded random keeps the wall the
 // same on every build. The tile wraps on all four sides, so it repeats without visible seams.
@@ -46,6 +47,7 @@ for (const h of rowHeights) {
   top += h;
 }
 
+const crackJobs = [];
 const grey = (t) => `rgb(${t},${t - 2},${t - 6})`;
 
 function block(x, y, w, h, b) {
@@ -70,18 +72,13 @@ function block(x, y, w, h, b) {
     add(`<polygon points="${pts.join(" ")}" fill="#3b3935"/>`);
     add(`<polygon points="${pts.join(" ")}" fill="none" stroke="#000" stroke-opacity="0.35" stroke-width="1"/>`);
   }
-  // A hairline crack wandering across some blocks.
+  // Cracked blocks get their crack in a later pass (cracks below), drawn with a random of its
+  // own. The draws the old single hairline made are still taken here, in the same order, so
+  // every other part of the wall (grime, chips) stays exactly as it was.
   if (b.cracked) {
-    let cx = bx + between(bw * 0.2, bw * 0.8);
-    let cy = by;
-    const d = [`M${f(cx)},${f(cy)}`];
-    while (cy < by + bh * between(0.5, 1)) {
-      cx += between(-14, 14);
-      cy += between(10, 24);
-      d.push(`L${f(cx)},${f(cy)}`);
-    }
-    add(`<path d="${d.join("")}" fill="none" stroke="#fff" stroke-opacity="0.07" stroke-width="1.2" transform="translate(1 1)"/>`);
-    add(`<path d="${d.join("")}" fill="none" stroke="#0d0c0b" stroke-opacity="0.75" stroke-width="1.1"/>`);
+    between(0, 1);
+    for (let cy = by; cy < by + bh * between(0.5, 1); cy += between(10, 24)) between(-14, 14);
+    crackJobs.push({ bx, by, bw, bh, seed: Math.abs(Math.round(b.x * 131 + y * 17)) + 1 });
   }
   // Grime collects along the joints: a patchy, blurred dark border over the block's edge.
   add(`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="none" stroke="#0b0907" stroke-width="${f(between(26, 40))}" stroke-opacity="${f(between(0.75, 0.95))}" filter="url(#edgeGrime)"/>`);
@@ -93,6 +90,103 @@ add(`<rect width="${W}" height="${H}" filter="url(#mortar)"/>`);
 // Each block is drawn three times, shifted by the tile width, so the rows wrap seamlessly.
 for (const row of rows) for (const b of row.blocks) for (const dx of [-W, 0, W]) block(b.x + dx, row.y, b.w, row.h, b);
 
+// Cracks ---------------------------------------------------------------------------------
+// Real cracks in concrete wander in short jagged steps, narrow towards their ends, fork, and
+// hold dirt: each is drawn as a dark core over a soft halo of grime, with a faint lit lip on
+// its lower side. Where something struck or settled, cracks spread as a web from a spalled
+// point, the radial cracks linked by shorter rings.
+function crackRandom(seed) {
+  let s = seed % 2147483647 || 1;
+  return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+}
+
+// One branch from (x, y) heading at angle `a`; returns its points. Forks spawn new branches.
+function crackBranch(r, x, y, a, len, width, out, depth = 0) {
+  const pts = [[x, y]];
+  let drift = (r() - 0.5) * 0.08;
+  for (let walked = 0; walked < len; ) {
+    const step = 5 + r() * 10;
+    a += drift + (r() - 0.5) * (r() < 0.15 ? 1.1 : 0.3);
+    drift += (r() - 0.5) * 0.02;
+    x += Math.cos(a) * step;
+    y += Math.sin(a) * step;
+    walked += step;
+    pts.push([x, y]);
+    if (depth < 2 && r() < 0.03 * (2 - depth)) {
+      const side = r() < 0.5 ? -1 : 1;
+      crackBranch(r, x, y, a + side * (0.35 + r() * 0.8), (len - walked) * (0.25 + r() * 0.5), width * 0.55, out, depth + 1);
+    }
+  }
+  out.push({ pts, width });
+}
+
+// Collects branches as three tapering stretches; the dark halo and the lit lip are added to
+// all of them at once by the crackFx filter, so each crack is stored only once.
+const crackPaths = [];
+function drawCracks(branches) {
+  for (const { pts, width } of branches) {
+    const n = pts.length;
+    for (let k = 0; k < 3; k++) {
+      const part = pts.slice(Math.floor((k * (n - 1)) / 3), Math.floor(((k + 1) * (n - 1)) / 3) + 1);
+      if (part.length > 1) crackPaths.push({ d: "M" + part.map(([px, py]) => `${Math.round(px)},${Math.round(py)}`).join("L"), w: Math.max(0.35, width * (1 - k * 0.33)) });
+    }
+  }
+}
+
+function crackWeb(r, cx, cy, size) {
+  const branches = [];
+  const arms = 6 + Math.floor(r() * 4);
+  const angles = Array.from({ length: arms }, (_, i) => ((i + r() * 0.6) / arms) * Math.PI * 2).sort((p, q) => p - q);
+  const ends = angles.map((a) => {
+    const before = branches.length;
+    crackBranch(r, cx, cy, a, size * (0.45 + r() * 0.75), 1.3 + r() * 1.1, branches, 1);
+    return branches[branches.length - 1] ?? branches[before];
+  });
+  // Rings: short jagged links between neighbouring arms.
+  for (const ring of [0.25 + r() * 0.12, 0.5 + r() * 0.15]) {
+    for (let i = 0; i < arms; i++) {
+      if (r() < 0.3) continue;
+      const pa = ends[i].pts;
+      const pb = ends[(i + 1) % arms].pts;
+      const A = pa[Math.min(pa.length - 1, Math.floor(pa.length * ring))];
+      const B = pb[Math.min(pb.length - 1, Math.floor(pb.length * ring))];
+      const pts = [A];
+      for (let k = 1; k < 4; k++) pts.push([A[0] + ((B[0] - A[0]) * k) / 4 + (r() - 0.5) * 6, A[1] + ((B[1] - A[1]) * k) / 4 + (r() - 0.5) * 6]);
+      pts.push(B);
+      branches.push({ pts, width: 0.7 + r() * 0.5 });
+    }
+  }
+  drawCracks(branches);
+  // The spalled point: a shallow pit where the surface broke away.
+  const pit = Array.from({ length: 9 }, (_, k) => {
+    const a = (k / 9) * Math.PI * 2;
+    const d = size * 0.07 * (0.6 + r() * 0.7);
+    return `${f(cx + Math.cos(a) * d)},${f(cy + Math.sin(a) * d)}`;
+  }).join(" ");
+  add(`<polygon points="${pit}" fill="#2c2a27"/>`);
+  add(`<polygon points="${pit}" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="1.2"/>`);
+  add(`<polygon points="${pit}" fill="none" stroke="#d6d2c8" stroke-opacity="0.08" stroke-width="1" transform="translate(0.8 1.2)"/>`);
+}
+
+// A crack across each cracked block, from an edge, sometimes reaching another. Copies of
+// blocks that lie wholly outside the tile are skipped.
+for (const { bx, by, bw, bh, seed: s } of crackJobs) {
+  if (bx > W || bx + bw < 0) continue;
+  const r = crackRandom(s);
+  const branches = [];
+  const fromTop = r() < 0.6;
+  const x = bx + bw * (0.15 + r() * 0.7);
+  crackBranch(r, x, fromTop ? by : by + bh, fromTop ? Math.PI / 2 + (r() - 0.5) * 0.8 : -Math.PI / 2 + (r() - 0.5) * 0.8, bh * (0.5 + r() * 0.6), 1.2 + r() * 1.2, branches);
+  drawCracks(branches);
+}
+// Webs where the wall took a blow or settled under a load.
+for (const [cx, cy, size, s] of [[380, 150, 150, 11], [980, 1120, 120, 23], [150, 1080, 95, 37], [1450, 520, 80, 41]]) {
+  for (const dx of [-W, 0, W]) if (cx + dx + size * 1.3 > 0 && cx + dx - size * 1.3 < W) crackWeb(crackRandom(s), cx + dx, cy, size);
+}
+add(`<g filter="url(#crackFx)" fill="none" stroke="#080706" stroke-opacity="0.9" stroke-linecap="round" stroke-linejoin="round">`);
+for (const { d, w } of crackPaths) add(`<path d="${d}" stroke-width="${f(w)}"/>`);
+add(`</g>`);
+
 // Concrete surface and dirt over the whole wall -------------------------------------------------
 add(`<rect width="${W}" height="${H}" filter="url(#mottle)" opacity="0.12"/>`);
 add(`<rect width="${W}" height="${H}" filter="url(#pores)"/>`);
@@ -101,66 +195,169 @@ add(`<rect width="${W}" height="${H}" filter="url(#grime)"/>`);
 add(`<rect width="${W}" height="${H}" filter="url(#streaks)" opacity="0.8"/>`);
 
 // Fittings ---------------------------------------------------------------------------------
-const drips = (x0, x1, y0, count, maxLen, rustShare = 0.35) => {
-  for (let i = 0; i < count; i++) {
-    const x = between(x0, x1);
-    const rusty = rand() < rustShare;
-    add(`<rect x="${f(x)}" y="${f(y0)}" width="${f(between(2, 7))}" height="${f(between(30, maxLen))}" fill="url(#${rusty ? "dripRust" : "dripDark"})" filter="url(#softer)"/>`);
-  }
-};
-const bolt = (x, y) => add(`<use href="#bolt" x="${f(x)}" y="${f(y)}"/>`);
-// Rust and dirt laid over a metal shape: the overlay repeats the shape and is cut to it.
-const rusted = (shape) => {
-  add(shape.replace("/>", ` fill="#000" filter="url(#rust)"/>`).replace(/ fill="url\(#[^)]+\)"| fill="#[0-9a-f]+"/, ""));
-  add(shape.replace("/>", ` fill="#000" filter="url(#grimeFine)"/>`).replace(/ fill="url\(#[^)]+\)"| fill="#[0-9a-f]+"/, ""));
-};
+// Decades without maintenance, but steel that was made to last: the rust is sporadic, small
+// spots mostly where two pieces of metal meet (couplings, clamps, bolts, hinges) or water
+// hangs, now and then running down the wall below. The fittings
+// use their own random, and each rust overlay one of several noise filters (rust0..rust7) at
+// its own strength, so no two stretches of pipe weather alike.
+let fseed = 777;
+const frand = () => ((fseed = (fseed * 16807) % 2147483647) - 1) / 2147483646;
+const fb = (a, b) => a + frand() * (b - a);
+const RUSTS = 8;
+const rustF = () => `rust${Math.floor(frand() * RUSTS)}`;
+// An overlay laid over a shape: the same shape, filled by a filter that is cut to it.
+const over = (shape, filter, opacity = 1) => add(shape.replace("/>", ` fill="#000" filter="url(#${filter})" opacity="${f(opacity)}"/>`));
 
-function hPipe(y, d, x0 = 0, x1 = W) {
-  add(`<rect x="${x0}" y="${y + d * 0.6}" width="${x1 - x0}" height="${d}" fill="#000" fill-opacity="0.6" filter="url(#shadow)"/>`);
-  add(`<rect x="${x0}" y="${y}" width="${x1 - x0}" height="${d}" fill="url(#pipeH)"/>`);
-  rusted(`<rect x="${x0}" y="${y}" width="${x1 - x0}" height="${d}"/>`);
-  for (let x = x0 + between(80, 200); x < x1 - 20; x += between(380, 520)) {
-    add(`<rect x="${f(x)}" y="${y - 4}" width="16" height="${d + 8}" rx="2" fill="url(#pipeH)"/>`);
-    add(`<rect x="${f(x)}" y="${y - 4}" width="16" height="${d + 8}" rx="2" fill="#000" fill-opacity="0.3"/>`);
-    add(`<circle cx="${f(x + 8)}" cy="${y + d / 2}" r="${f(between(12, 20))}" fill="#6b3416" fill-opacity="0.4" filter="url(#soft)"/>`);
-    drips(x - 4, x + 20, y + d + 4, 3, 160, 0.8);
+const drip = (x, y, len, rusty, width = fb(2, 6)) =>
+  add(`<rect x="${f(x)}" y="${f(y)}" width="${f(width)}" height="${f(len)}" fill="url(#${rusty ? "dripRust" : "dripDark"})" filter="url(#softer)"/>`);
+// Rust bleeding down the wall from a point: one wide faint stain and a few thin runs.
+function bleed(x, y, strength = 1) {
+  add(`<rect x="${f(x - fb(5, 10))}" y="${f(y)}" width="${f(fb(10, 20))}" height="${f(fb(60, 180) * strength)}" fill="url(#dripRust)" opacity="${f(fb(0.35, 0.7))}" filter="url(#soft)"/>`);
+  for (let i = 0, n = Math.floor(fb(1, 4)); i < n; i++) drip(x + fb(-7, 7), y, fb(30, 200) * strength, frand() < 0.75, fb(1.5, 4));
+}
+// A rust bloom: an irregular patch of thick rust, swelling out of a joint or bolt.
+const bloom = (cx, cy, rx, ry) => add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" fill="#000" filter="url(#bloom${Math.floor(frand() * 3)})" opacity="${f(fb(0.6, 1))}"/>`);
+// Spots of dirt: blotches of different size and darkness, never an even coat.
+function spots(x, y, w, h, n, colour = "#120e0a", [lo, hi] = [0.3, 0.75]) {
+  for (let i = 0; i < n; i++) {
+    const rx = fb(5, 32);
+    add(`<ellipse cx="${f(x + fb(0, w))}" cy="${f(y + fb(0, h))}" rx="${f(rx)}" ry="${f(rx * fb(0.4, 1))}" fill="${colour}" opacity="${f(fb(lo, hi))}" filter="url(#blotch${Math.floor(frand() * 3)})"/>`);
   }
-  for (let x = x0 + between(220, 320); x < x1 - 20; x += between(300, 360)) {
-    add(`<rect x="${f(x)}" y="${y - 10}" width="12" height="${d + 20}" fill="#1e1c1a"/>`);
-    add(`<rect x="${f(x - 6)}" y="${y - 14}" width="24" height="6" fill="#2a2724"/>`);
-    bolt(x + 6, y - 11);
+}
+// Bolts: most rusted, some seized dark, now and then one gone with only its hole left.
+function bolt(x, y, wall = true) {
+  const r = frand();
+  if (r < 0.07) {
+    add(`<circle cx="${f(x)}" cy="${f(y)}" r="2.2" fill="#080706"/>`);
+    if (wall) bleed(x, y + 2, 0.5);
+    return;
   }
-  drips(x0, x1, y + d, Math.round((x1 - x0) / 75), 170);
+  add(`<use href="#${r < 0.35 ? "boltRust" : "bolt"}" x="${f(x)}" y="${f(y)}" transform="rotate(${f(fb(0, 90))} ${f(x)} ${f(y)})"/>`);
+  if (r < 0.2) bloom(x + 1, y + 2, fb(3, 6), fb(3, 5));
+  if (wall && frand() < 0.2) bleed(x, y + 3, 0.5);
 }
 
-function vPipe(x, d, y0 = 0, y1 = H) {
-  add(`<rect x="${x + d * 0.5}" y="${y0}" width="${d}" height="${y1 - y0}" fill="#000" fill-opacity="0.6" filter="url(#shadow)"/>`);
-  add(`<rect x="${x}" y="${y0}" width="${d}" height="${y1 - y0}" fill="url(#pipeV)"/>`);
-  rusted(`<rect x="${x}" y="${y0}" width="${d}" height="${y1 - y0}"/>`);
-  for (let y = y0 + between(60, 160); y < y1 - 20; y += between(420, 560)) {
-    add(`<rect x="${x - 4}" y="${f(y)}" width="${d + 8}" height="16" rx="2" fill="url(#pipeV)"/>`);
-    add(`<rect x="${x - 4}" y="${f(y)}" width="${d + 8}" height="16" rx="2" fill="#000" fill-opacity="0.3"/>`);
-    drips(x, x + d, y + 16, 2, 120, 0.9);
+// The surface of a pipe, worn like the metal buttons: patches of grime and pits with no
+// direction to them, and random scratches, light where they cut through the dirt to the
+// metal and dark where they hold it.
+function pipeSurface(vertical, at, d, from, to) {
+  const shape = vertical ? `<rect x="${at}" y="${from}" width="${d}" height="${to - from}"/>` : `<rect x="${from}" y="${at}" width="${to - from}" height="${d}"/>`;
+  over(shape, "pipePatches", 0.95);
+  over(shape, "pipePits", 1);
+  const clampTo = (v) => Math.min(at + d - 1.5, Math.max(at + 1.5, v));
+  for (let i = 0, n = Math.round((to - from) / 22); i < n; i++) {
+    const p = fb(from, to);
+    const q = fb(at + 2, at + d - 2);
+    const len = fb(3, Math.min(28, d * 1.4));
+    const ang = fb(0, Math.PI);
+    const [dp, dq] = [Math.cos(ang) * len, Math.sin(ang) * len * 0.6];
+    const light = frand() < 0.7;
+    const [x1, y1, x2, y2] = vertical ? [clampTo(q), p, clampTo(q + dq), p + dp] : [p, clampTo(q), p + dp, clampTo(q + dq)];
+    add(`<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="${light ? "#e6e1d6" : "#0c0a08"}" stroke-opacity="${f(light ? fb(0.08, 0.22) : fb(0.12, 0.25))}" stroke-width="${f(fb(0.5, 1.1))}" stroke-linecap="round"/>`);
   }
-  for (let y = y0 + between(200, 300); y < y1 - 20; y += between(320, 380)) {
-    add(`<rect x="${x - 12}" y="${f(y)}" width="${d + 24}" height="12" fill="#1e1c1a"/>`);
-    bolt(x - 6, y + 6);
-    bolt(x + d + 6, y + 6);
+}
+
+// A pipe run: sections joined by couplings at irregular spacing, each section weathered on
+// its own. A coupling sits on the tile's edge, so the run repeats round the wrap unseen.
+function pipe({ vertical = false, at, d, from = 0, to = vertical ? H : W, wrap = false }) {
+  const len = to - from;
+  const rect = (a, b, extra = 0) =>
+    vertical ? `<rect x="${at - extra}" y="${f(a)}" width="${d + 2 * extra}" height="${f(b - a)}"/>` : `<rect x="${f(a)}" y="${at - extra}" width="${f(b - a)}" height="${d + 2 * extra}"/>`;
+  // Shadow on the wall, the pipe itself, then its surface.
+  add((vertical ? `<rect x="${at + d * 0.5}" y="${from}" width="${d}" height="${len}"` : `<rect x="${from}" y="${at + d * 0.6}" width="${len}" height="${d}"`) + ` fill="#000" fill-opacity="0.6" filter="url(#shadow)"/>`);
+  add(rect(from, to).replace("/>", ` fill="url(#${vertical ? "pipeV" : "pipeH"})"/>`));
+  pipeSurface(vertical, at, d, from, to);
+  // Couplings: irregular spacing, one on the wrap edge for full runs.
+  const joints = wrap ? [from] : [];
+  for (let p = from + fb(140, 380); p < to - 60; p += fb(260, 560)) joints.push(p);
+  const bounds = [from, ...joints.filter((j) => j > from), to];
+  // Each section: its own tone.
+  for (let i = 0; i < bounds.length - 1; i++) {
+    const [a, b] = [bounds[i], bounds[i + 1]];
+    add(rect(a, b).replace("/>", ` fill="${frand() < 0.5 ? "#000" : "#fff"}" opacity="${f(fb(0, 0.12))}"/>`));
+    // No coat of rust: now and then a small patch, mostly on the underside where water hangs.
+    for (let k = 0, n = frand() < 0.5 ? 0 : Math.floor(fb(1, 3)); k < n; k++) {
+      const p = fb(a + 10, b - 10);
+      const q = fb(0.55, 0.95) * d;
+      bloom(vertical ? at + q : p, vertical ? p : at + q, fb(4, 12), fb(2, 5));
+    }
+    // A broken specular line: what is left of the metal's shine.
+    const shine = vertical ? `<rect x="${at + d * 0.3}" y="${f(a)}" width="${f(Math.max(1.5, d * 0.08))}" height="${f(b - a)}"/>` : `<rect x="${f(a)}" y="${at + d * 0.3}" width="${f(b - a)}" height="${f(Math.max(1.5, d * 0.08))}"/>`;
+    add(shine.replace("/>", ` fill="#d8d2c4" opacity="${f(fb(0.12, 0.28))}" filter="url(#broken)"/>`));
+    // Dust settles along the top of horizontal pipes.
+    if (!vertical) add(`<rect x="${f(a)}" y="${at}" width="${f(b - a)}" height="${f(d * 0.18)}" fill="#8a7f6c" opacity="${f(fb(0.15, 0.3))}" filter="url(#dusty)"/>`);
+    // Water runs off the underside: drips mostly at the low points, a few anywhere.
+    if (!vertical) for (let k = 0, n = Math.floor(fb(0, (b - a) / 260)); k < n; k++) drip(fb(a, b), at + d, fb(20, 120), frand() < 0.4);
   }
+  // Couplings: collars a little wider than the pipe, the worst rust of the run.
+  for (const j of joints) {
+    for (const shift of wrap ? [-len, 0, len] : [0]) {
+      const p = j + shift;
+      const c = fb(16, 24);
+      const collar = vertical ? `<rect x="${at - 4}" y="${f(p - c / 2)}" width="${d + 8}" height="${f(c)}" rx="2"/>` : `<rect x="${f(p - c / 2)}" y="${at - 4}" width="${f(c)}" height="${d + 8}" rx="2"/>`;
+      add(collar.replace("/>", ` fill="url(#${vertical ? "pipeV" : "pipeH"})"/>`));
+      add(collar.replace("/>", ` fill="#000" opacity="0.35"/>`));
+      over(collar, rustF(), fb(0.15, 0.45));
+      if (frand() < 0.6) bloom(vertical ? at + d * fb(0.3, 0.8) : p + fb(-c / 2, c / 2), vertical ? p + fb(-c / 2, c / 2) : at + d * fb(0.5, 0.9), fb(4, 10), fb(3, 7));
+      if (frand() < 0.4) {
+        if (!vertical) bleed(p, at + d + 4, fb(0.5, 1));
+        else bleed(at + d / 2, p + c / 2, fb(0.4, 0.8));
+      }
+    }
+  }
+  // Clamps to the wall at irregular spacing, rusted thin; now and then one has rotted away
+  // and left only its bolt holes and a rust shadow.
+  for (let p = from + fb(120, 300); p < to - 40; p += fb(240, 420)) {
+    if (frand() < 0.18) {
+      const ghost = vertical ? `<rect x="${at - 10}" y="${f(p)}" width="${d + 20}" height="11"/>` : `<rect x="${f(p)}" y="${at - 10}" width="11" height="${d + 20}"/>`;
+      over(ghost, rustF(), 0.4);
+      add(`<circle cx="${f(vertical ? at - 6 : p + 5)}" cy="${f(vertical ? p + 5 : at - 6)}" r="2" fill="#080706"/>`);
+      bleed(vertical ? at - 6 : p + 5, vertical ? p + 7 : at - 4, 0.8);
+      continue;
+    }
+    clamp(vertical, at, d, p);
+  }
+}
+
+function clamp(vertical, at, d, p) {
+  const tilt = fb(-4, 4);
+  const w = fb(9, 13);
+  const tab = fb(9, 13);
+  const cx = vertical ? at + d / 2 : p + w / 2;
+  const cy = vertical ? p + w / 2 : at + d / 2;
+  add(`<g transform="rotate(${f(tilt)} ${f(cx)} ${f(cy)})">`);
+  // The strap over the pipe and the tab it is bolted down by.
+  const strap = vertical ? `<rect x="${at - tab}" y="${f(p)}" width="${f(d + 2 * tab)}" height="${f(w)}" rx="1.5"/>` : `<rect x="${f(p)}" y="${at - tab}" width="${f(w)}" height="${f(d + 2 * tab)}" rx="1.5"/>`;
+  add(strap.replace("/>", ` fill="#000" fill-opacity="0.5" filter="url(#softer)" transform="translate(2 3)"/>`));
+  add(strap.replace("/>", ` fill="#3b2f26"/>`));
+  over(strap, rustF(), fb(0.2, 0.5));
+  add(strap.replace("/>", ` fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="1"/>`));
+  add(`</g>`);
+  if (vertical) {
+    bolt(at - tab / 2, p + w / 2);
+    bolt(at + d + tab / 2, p + w / 2);
+  } else {
+    bolt(p + w / 2, at - tab / 2);
+    bolt(p + w / 2, at + d + tab / 2);
+  }
+  if (frand() < 0.45) bloom(cx + fb(-4, 4), cy + fb(-d / 2, d / 2), fb(3, 8), fb(3, 6));
 }
 
 function valve(cx, cy) {
   add(`<circle cx="${cx + 4}" cy="${cy + 6}" r="40" fill="#000" fill-opacity="0.5" filter="url(#shadow)"/>`);
-  add(`<circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="#5c1f14" stroke-width="7"/>`);
-  add(`<circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="#000" stroke-width="7" filter="url(#rust)"/>`);
+  add(`<circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="#4e1d13" stroke-width="7"/>`);
   for (let a = 0; a < 3; a++) {
     const t = (a * Math.PI) / 3 + 0.3;
-    add(`<line x1="${f(cx - Math.cos(t) * 32)}" y1="${f(cy - Math.sin(t) * 32)}" x2="${f(cx + Math.cos(t) * 32)}" y2="${f(cy + Math.sin(t) * 32)}" stroke="#4a1a11" stroke-width="5"/>`);
+    add(`<line x1="${f(cx - Math.cos(t) * 32)}" y1="${f(cy - Math.sin(t) * 32)}" x2="${f(cx + Math.cos(t) * 32)}" y2="${f(cy + Math.sin(t) * 32)}" stroke="#3f1810" stroke-width="5"/>`);
   }
-  add(`<circle cx="${cx}" cy="${cy}" r="8" fill="#3a3632"/>`);
+  add(`<circle cx="${cx}" cy="${cy}" r="34" fill="none" stroke="#000" stroke-width="7" filter="url(#${rustF()})" opacity="0.9"/>`);
+  add(`<circle cx="${cx}" cy="${cy}" r="8" fill="#2e2a26"/>`);
+  bloom(cx, cy, 10, 9);
+  bleed(cx, cy + 36, 1.2);
 }
 
-// Rubber-sheathed cables sagging between clips; each its own shade, slightly apart.
+// Rubber-sheathed cables sagging between clips; each its own shade, slightly apart. The
+// rubber has gone dull and dusty; the clips are rusted.
 function cables(points, colours) {
   colours.forEach((c, i) => {
     const off = i * 7;
@@ -168,116 +365,171 @@ function cables(points, colours) {
     for (let k = 1; k < points.length; k++) {
       const [x0, y0] = points[k - 1];
       const [x1, y1] = points[k];
-      const sag = Math.abs(x1 - x0) > 40 ? between(14, 26) : 0;
+      const sag = Math.abs(x1 - x0) > 40 ? fb(14, 30) : 0;
       d += ` Q${f((x0 + x1) / 2)},${f((y0 + y1) / 2 + off + sag)} ${x1},${y1 + off}`;
     }
     add(`<path d="${d}" fill="none" stroke="#000" stroke-opacity="0.55" stroke-width="7" transform="translate(4 7)" filter="url(#softer)"/>`);
     add(`<path d="${d}" fill="none" stroke="${c}" stroke-width="5.5" stroke-linecap="round"/>`);
-    add(`<path d="${d}" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="1.2" transform="translate(-1 -1.6)"/>`);
+    add(`<path d="${d}" fill="none" stroke="#8a7f6c" stroke-opacity="0.18" stroke-width="2" transform="translate(0 -1.5)" filter="url(#broken)"/>`);
   });
   for (const [x, y] of points.slice(1, -1)) {
-    add(`<rect x="${x - 5}" y="${y - 5}" width="10" height="${colours.length * 7 + 6}" rx="2" fill="#2b2926"/>`);
+    const clip = `<rect x="${x - 5}" y="${y - 5}" width="10" height="${colours.length * 7 + 6}" rx="2"/>`;
+    add(clip.replace("/>", ` fill="#2f2620"/>`));
+    over(clip, rustF(), fb(0.2, 0.5));
     bolt(x, y - 1);
+  }
+}
+
+// Decades of weathering on painted steel, laid over everything on it (labels included):
+// the paint faded unevenly, pitted and blotched with grime like the pipes, dirt run down the
+// face in streaks and gathered thick towards the bottom, dust settled along the top, grime
+// worked into the edges, spots of dirt, a little rust and fine scratches.
+// A cabinet standing off the wall (onBox) keeps all of it on its own face, so nothing runs
+// across its edge onto the concrete, its grime is softer and browner, and its edges catch
+// the light; a flat sign may share its grime with the wall. `dirt` scales how heavy it is.
+let boxClip = 0;
+function weatherBox(x, y, w, h, rx, onBox = false, dirt = 1) {
+  const face = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+  if (onBox) {
+    const id = `box${boxClip++}`;
+    add(`<clipPath id="${id}">${face}</clipPath><g clip-path="url(#${id})">`);
+  }
+  over(face, "paintWear", 0.6);
+  over(face, "pipePatches", 0.9);
+  over(face, "pipePits", 1);
+  over(face, "faceStreaks", fb(0.6, 0.85) * dirt);
+  add(face.replace("/>", ` fill="url(#boxGrime)"/>`));
+  add(`<rect x="${x + 2}" y="${y}" width="${w - 4}" height="${f(Math.min(10, h * 0.08))}" fill="#8a7f6c" opacity="${f(fb(0.25, 0.45))}" filter="url(#dusty)"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="${f(0.6 * dirt)}" filter="url(#edgeGrime)"/>`);
+  if (onBox) {
+    // Stains and mould, brown and dark green, kept to the box's face.
+    spots(x, y, w, h, Math.round(((w * h) / 700) * dirt), "#2a2117", [0.2, 0.5].map((o) => o * dirt));
+    spots(x, y, w, h, Math.round(((w * h) / 1600) * dirt), "#1f271a", [0.25, 0.55].map((o) => o * dirt));
+  }
+  else spots(x, y, w, h, Math.round((w * h) / 1100));
+  for (let i = 0, n = Math.floor(fb(0, 2.5)); i < n; i++) {
+    const ex = frand() < 0.5 ? x + fb(0, 6) : x + w - fb(0, 6);
+    bloom(ex, y + fb(0, h), fb(2, 5), fb(4, 9));
+  }
+  for (let i = 0, n = Math.floor(fb(5, 10)); i < n; i++) {
+    const sx = x + fb(6, w - 6);
+    const sy = y + fb(6, h - 6);
+    add(`<line x1="${f(sx)}" y1="${f(sy)}" x2="${f(sx + fb(-30, 30))}" y2="${f(sy + fb(-8, 8))}" stroke="#c9c2b2" stroke-opacity="${f(fb(0.06, 0.16))}" stroke-width="0.8"/>`);
+  }
+  if (onBox) {
+    add(`</g>`);
+    // The box's own edges: lit along the top and left, dark along the bottom and right.
+    add(`<rect x="${x + 1}" y="${y}" width="${w - 2}" height="1.2" fill="#d8d3c6" opacity="0.18"/>`);
+    add(`<rect x="${x}" y="${y + 1}" width="1.2" height="${h - 2}" fill="#d8d3c6" opacity="0.12"/>`);
+    add(`<rect x="${x + 1}" y="${y + h - 1.6}" width="${w - 2}" height="1.6" fill="#000" opacity="0.55"/>`);
+    add(`<rect x="${x + w - 1.4}" y="${y + 1}" width="1.4" height="${h - 2}" fill="#000" opacity="0.45"/>`);
   }
 }
 
 function breakerPanel(x, y, w, h) {
   add(`<rect x="${x + 9}" y="${y + 12}" width="${w}" height="${h}" fill="#000" fill-opacity="0.6" filter="url(#shadow)"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#5a5d57"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#53554f"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="url(#blockLight)"/>`);
   // Door with a seam, hinges on the left and a latch on the right.
   add(`<rect x="${x + 8}" y="${y + 8}" width="${w - 16}" height="${h - 16}" rx="2" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="1.5"/>`);
-  add(`<rect x="${x + 9}" y="${y + 9}" width="${w - 18}" height="1" fill="#fff" fill-opacity="0.1"/>`);
-  for (const hy of [y + 30, y + h - 46]) add(`<rect x="${x + 3}" y="${hy}" width="7" height="16" rx="1" fill="#2e2d2a"/>`);
+  add(`<rect x="${x + 9}" y="${y + 9}" width="${w - 18}" height="1" fill="#fff" fill-opacity="0.08"/>`);
+  for (const hy of [y + 30, y + h - 46]) {
+    add(`<rect x="${x + 3}" y="${hy}" width="7" height="16" rx="1" fill="#3a2c22"/>`);
+    if (frand() < 0.6) bloom(x + 6, hy + fb(2, 14), 3, 5);
+  }
   add(`<rect x="${x + w - 22}" y="${y + h / 2 - 18}" width="10" height="36" rx="3" fill="#232220"/>`);
-  add(`<rect x="${x + w - 20}" y="${y + h / 2 - 16}" width="3" height="32" fill="#fff" fill-opacity="0.1"/>`);
-  // Louvres along the bottom of the door.
+  add(`<rect x="${x + w - 20}" y="${y + h / 2 - 16}" width="3" height="32" fill="#fff" fill-opacity="0.08"/>`);
   for (let ly = y + h - 56; ly < y + h - 20; ly += 9) add(`<rect x="${x + 26}" y="${ly}" width="${w - 60}" height="4" rx="1" fill="#141312"/>`);
-  // A small yellow warning label with a lightning flash.
+  // A small yellow warning label with a lightning flash, faded and peeling.
   const lx = x + w / 2 - 22;
   const ly = y + 34;
-  add(`<polygon points="${lx + 22},${ly} ${lx + 46},${ly + 40} ${lx - 2},${ly + 40}" fill="#c9a51c"/>`);
+  add(`<polygon points="${lx + 22},${ly} ${lx + 46},${ly + 40} ${lx - 2},${ly + 40}" fill="#b89a26"/>`);
   add(`<polygon points="${lx + 22},${ly + 6} ${lx + 40},${ly + 36} ${lx + 4},${ly + 36}" fill="none" stroke="#151412" stroke-width="2.5"/>`);
   add(`<path d="M${lx + 25},${ly + 13} l-7,12 h6 l-4,9 l9,-13 h-6 l4,-8 z" fill="#151412"/>`);
-  add(`<rect x="${x + 22}" y="${y + 92}" width="${w - 44}" height="16" fill="#d8d2bd" fill-opacity="0.55"/>`);
-  add(`<text x="${x + w / 2}" y="${y + 104}" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="bold" font-size="11" letter-spacing="1" fill="#1a1917" fill-opacity="0.8">MAIN BREAKER</text>`);
-  rusted(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="none" stroke="#0b0907" stroke-width="24" stroke-opacity="0.6" filter="url(#edgeGrime)"/>`);
-  for (const [sx, sy] of [[x + 5, y + 5], [x + w - 5, y + 5], [x + 5, y + h - 5], [x + w - 5, y + h - 5]]) bolt(sx, sy);
-  drips(x + 6, x + w - 6, y + h, 9, 150, 0.6);
+  add(`<polygon points="${lx + 34},${ly + 40} ${lx + 46},${ly + 40} ${lx + 40},${ly + 30}" fill="#585b55"/>`);
+  add(`<rect x="${x + 22}" y="${y + 92}" width="${w - 44}" height="16" fill="#cfc8b2" fill-opacity="0.45"/>`);
+  add(`<text x="${x + w / 2}" y="${y + 104}" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="bold" font-size="11" letter-spacing="1" fill="#1a1917" fill-opacity="0.7">MAIN BREAKER</text>`);
+  weatherBox(x, y, w, h, 3, true);
+  for (const [sx, sy] of [[x + 5, y + 5], [x + w - 5, y + 5], [x + 5, y + h - 5], [x + w - 5, y + h - 5]]) bolt(sx, sy, false);
+  for (let i = 0; i < 2; i++) bleed(x + fb(6, w - 6), y + h, fb(0.4, 0.8));
 }
 
 function junctionBox(x, y, w, h, conduitTo) {
-  add(`<rect x="${x + w / 2 - 7 + 6}" y="${conduitTo}" width="14" height="${y - conduitTo}" fill="#000" fill-opacity="0.5" filter="url(#shadow)"/>`);
-  add(`<rect x="${x + w / 2 - 7}" y="${conduitTo}" width="14" height="${y - conduitTo}" fill="url(#pipeV)"/>`);
-  rusted(`<rect x="${x + w / 2 - 7}" y="${conduitTo}" width="14" height="${y - conduitTo}"/>`);
+  pipe({ vertical: true, at: x + w / 2 - 7, d: 14, from: conduitTo, to: y });
   add(`<rect x="${x + 8}" y="${y + 10}" width="${w}" height="${h}" fill="#000" fill-opacity="0.55" filter="url(#shadow)"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#4d5149"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#4b4f47"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="url(#blockLight)"/>`);
   add(`<rect x="${x + 10}" y="${y + 10}" width="${w - 20}" height="${h - 20}" rx="2" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="2"/>`);
-  rusted(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="none" stroke="#0b0907" stroke-width="22" stroke-opacity="0.6" filter="url(#edgeGrime)"/>`);
-  for (const [sx, sy] of [[x + 9, y + 9], [x + w - 9, y + 9], [x + 9, y + h - 9], [x + w - 9, y + h - 9]]) bolt(sx, sy);
-  drips(x, x + w, y + h, 6, 120, 0.6);
+  weatherBox(x, y, w, h, 4, true);
+  for (const [sx, sy] of [[x + 9, y + 9], [x + w - 9, y + 9], [x + 9, y + h - 9], [x + w - 9, y + h - 9]]) bolt(sx, sy, false);
+  bleed(x + fb(6, w - 6), y + h, fb(0.4, 0.8));
 }
 
 function vent(x, y, w, h) {
   add(`<rect x="${x + 6}" y="${y + 8}" width="${w}" height="${h}" fill="#000" fill-opacity="0.5" filter="url(#shadow)"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#3c3a36"/>`);
   for (let sy = y + 12; sy < y + h - 10; sy += 12) {
-    add(`<rect x="${x + 10}" y="${sy}" width="${w - 20}" height="7" fill="#0e0d0c"/>`);
-    add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2" fill="#fff" fill-opacity="0.07"/>`);
+    add(`<rect x="${x + 10}" y="${sy}" width="${w - 20}" height="7" fill="#24221f"/>`);
+    add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2" fill="#fff" fill-opacity="0.06"/>`);
+    add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2.5" fill="#8a7f6c" opacity="${f(fb(0.3, 0.6))}" filter="url(#dusty)"/>`);
+    if (frand() < 0.15) bloom(x + fb(14, w - 14), sy + 8, fb(4, 10), 2);
   }
-  rusted(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="none" stroke="#000" stroke-opacity="0.6" stroke-width="16" filter="url(#edgeGrime)"/>`);
-  for (const [sx, sy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + h - 6], [x + w - 6, y + h - 6]]) bolt(sx, sy);
+  weatherBox(x, y, w, h, 3, true, 0.45);
+  for (const [sx, sy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + h - 6], [x + w - 6, y + h - 6]]) bolt(sx, sy, false);
   // Soot blown out of the vent onto the wall above it.
-  add(`<ellipse cx="${x + w / 2}" cy="${y - 20}" rx="${w * 0.6}" ry="60" fill="#0a0908" fill-opacity="0.5" filter="url(#sooty)"/>`);
-  drips(x + 10, x + w - 10, y + h, 8, 140);
+  add(`<ellipse cx="${x + w / 2}" cy="${y - 20}" rx="${w * 0.6}" ry="60" fill="#0a0908" fill-opacity="0.32" filter="url(#sooty)"/>`);
+  for (let i = 0; i < 2; i++) bleed(x + fb(10, w - 10), y + h, fb(0.4, 0.8));
 }
 
-// An enamel sign screwed to the wall, faded, chipped and streaked with rust from its screws.
+// An enamel sign screwed to the wall: faded, a little rust at corners and edges, a few spots
+// of grime, and rust running from its screws.
 function warningSign(x, y, w, h, tilt) {
   add(`<g transform="rotate(${tilt} ${x + w / 2} ${y + h / 2})">`);
   add(`<rect x="${x + 6}" y="${y + 9}" width="${w}" height="${h}" fill="#000" fill-opacity="0.55" filter="url(#shadow)"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#b8961f"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#a8892c"/>`);
   add(`<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${h - 12}" rx="2" fill="none" stroke="#1a1816" stroke-width="3"/>`);
   add(`<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="34" fill="#1a1816"/>`);
-  add(`<text x="${x + w / 2}" y="${y + 33}" text-anchor="middle" font-family="Impact, 'Arial Narrow', sans-serif" font-size="26" letter-spacing="3" fill="#b8961f">DANGER</text>`);
-  const tx = x + 40;
+  add(`<text x="${x + w / 2}" y="${y + 33}" text-anchor="middle" font-family="Impact, 'Arial Narrow', sans-serif" font-size="26" letter-spacing="3" fill="#b3922a">DANGER</text>`);
+  // The flash and HIGH VOLTAGE as one group, centred on the sign: triangle 68 wide, a 12 gap,
+  // then the words (about 75 wide in Impact 22).
+  const tx = x + (w - 155) / 2 + 34;
   const ty = y + 54;
   add(`<polygon points="${tx},${ty} ${tx + 34},${ty + 58} ${tx - 34},${ty + 58}" fill="none" stroke="#1a1816" stroke-width="5" stroke-linejoin="round"/>`);
   add(`<path d="M${tx + 4},${ty + 16} l-11,19 h9 l-6,15 l14,-21 h-9 l6,-13 z" fill="#1a1816"/>`);
-  add(`<text x="${x + 86}" y="${y + 80}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">HIGH</text>`);
-  add(`<text x="${x + 86}" y="${y + 104}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">VOLTAGE</text>`);
+  add(`<text x="${tx + 46}" y="${y + 80}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">HIGH</text>`);
+  add(`<text x="${tx + 46}" y="${y + 104}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">VOLTAGE</text>`);
   add(`<text x="${x + w / 2}" y="${y + h - 16}" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="bold" font-size="11" letter-spacing="1" fill="#1a1816">AUTHORISED PERSONNEL ONLY</text>`);
-  // Enamel chipped off down to the dark steel, then grime and rust over everything.
-  for (let i = 0; i < 9; i++) {
-    const cx = rand() < 0.6 ? (rand() < 0.5 ? x + between(0, 18) : x + w - between(0, 18)) : x + between(0, w);
-    const cy = rand() < 0.5 ? y + between(0, 14) : y + h - between(0, 14);
-    add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(between(3, 9))}" ry="${f(between(2, 6))}" fill="#2a2420"/>`);
+  // A little rust where the enamel wears through first: some corners, a few spots on the edges.
+  for (const [cx, cy] of [[x + 3, y + 3], [x + w - 3, y + 3], [x + 3, y + h - 3], [x + w - 3, y + h - 3]]) {
+    if (frand() < 0.6) bloom(cx, cy, fb(3, 6), fb(3, 6));
   }
-  rusted(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#0b0907" fill-opacity="0.18"/>`);
-  for (const [sx, sy] of [[x + 12, y + 12], [x + w - 12, y + 12], [x + 12, y + h - 12], [x + w - 12, y + h - 12]]) bolt(sx, sy);
+  for (let i = 0, n = Math.floor(fb(2, 4)); i < n; i++) {
+    const side = Math.floor(frand() * 4);
+    const along = fb(0.15, 0.85);
+    const [ex, ey] = [[x + w * along, y + 1], [x + w - 1, y + h * along], [x + w * along, y + h - 1], [x + 1, y + h * along]][side];
+    bloom(ex, ey, fb(2, 5), fb(2, 4));
+  }
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#3a2a14" opacity="0.2"/>`);
+  weatherBox(x, y, w, h, 4);
+  for (const [sx, sy] of [[x + 12, y + 12], [x + w - 12, y + 12], [x + 12, y + h - 12], [x + w - 12, y + h - 12]]) bolt(sx, sy, false);
   add(`</g>`);
-  for (const sx of [x + 12, x + w - 12]) add(`<rect x="${sx - 2}" y="${y + h - 6}" width="${f(between(3, 5))}" height="${f(between(50, 110))}" fill="url(#dripRust)" filter="url(#softer)"/>`);
+  for (const sx of [x + 12, x + w - 12]) bleed(sx, y + h - 6, fb(0.6, 1.1));
 }
 
 // Layout. The notes sit at the top centre of the screen, which is the tile's top centre.
 cables([[0, 368], [260, 362], [560, 366], [900, 362], [1150, 366], [1600, 368]], ["#1d1c1a", "#2a2623", "#3b2a1c"]);
-hPipe(470, 42);
-hPipe(526, 20);
-vPipe(1210, 36);
+pipe({ at: 470, d: 42, wrap: true });
+pipe({ at: 526, d: 20, wrap: true });
+pipe({ vertical: true, at: 1210, d: 36, wrap: true });
 valve(1228, 980);
-hPipe(1236, 28, 0, 1210); // a lower return pipe that ends in the riser
-vPipe(96, 24, 526 + 20, 1236); // a drop between the two runs
+pipe({ at: 1236, d: 28, from: 0, to: 1210 }); // a lower return pipe that ends in the riser
+pipe({ vertical: true, at: 96, d: 24, from: 546, to: 1236 }); // a drop between the two runs
 breakerPanel(232, 690, 150, 210);
 cables([[307, 900], [307, 1000], [420, 1010], [560, 1004], [640, 1010]], ["#1d1c1a", "#2b2724"]);
 junctionBox(640, 980, 110, 130, 546);
 warningSign(1290, 640, 230, 150, 1.4);
 vent(1330, 1040, 190, 120);
-drips(0, W, 0, 30, 110);
+for (let i = 0; i < 30; i++) drip(fb(0, W), 0, fb(30, 110), frand() < 0.35);
 // Sprayed stencil of the level, mostly worn off the concrete.
 add(`<text x="1385" y="300" font-family="Impact, 'Arial Narrow', sans-serif" font-size="120" fill="#e8e2d0" fill-opacity="0.2" letter-spacing="10" transform="rotate(-1 1385 300)" filter="url(#stencil)">B2</text>`);
 // A last wash of dirt so nothing looks freshly drawn.
@@ -304,8 +556,31 @@ const defs = `<defs>
 <filter id="streaks" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.0125 0.0015" numOctaves="4" seed="17" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.06 0 0 0 0 0.05 0 0 0 0 0.035 3 0 0 0 -1.35"/></filter>
 <filter id="grimeLarge" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.0035" numOctaves="3" seed="29" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.03 0 0 0 0 0.025 0 0 0 0 0.02 2.1 0 0 0 -0.95"/></filter>
 <filter id="grimeFine"><feTurbulence type="fractalNoise" baseFrequency="0.035 0.12" numOctaves="3" seed="3"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.3 0 0 0 -0.5"/><feComposite in2="SourceGraphic" operator="in"/></filter>
-<filter id="rust"><feTurbulence type="fractalNoise" baseFrequency="0.03 0.06" numOctaves="4" seed="31"/><feColorMatrix values="0 0 0 0 0.34 0 0 0 0 0.15 0 0 0 0 0.06 1.7 0 0 0 -0.92"/><feComposite in2="SourceGraphic" operator="in"/></filter>
 <filter id="stencil"><feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="9"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.7"/><feComposite in="SourceGraphic" operator="in"/></filter>
+<radialGradient id="boltRustGrad" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#7a5038"/><stop offset="0.5" stop-color="#4d2c1a"/><stop offset="1" stop-color="#1b120c"/></radialGradient>
+<g id="boltRust"><circle cx="1" cy="1.4" r="3.8" fill="#000" fill-opacity="0.6"/><circle r="3.2" fill="url(#boltRustGrad)"/><line x1="-2" y1="0" x2="2" y2="0" stroke="#160d08" stroke-width="0.9"/></g>
+<filter id="rust0"><feTurbulence type="fractalNoise" baseFrequency="0.020 0.096" numOctaves="4" seed="31"/><feColorMatrix values="0 0 0 0 0.27 0 0 0 0 0.12 0 0 0 0 0.05 1.8 0 0 0 -0.67"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust1"><feTurbulence type="fractalNoise" baseFrequency="0.034 0.076" numOctaves="4" seed="44"/><feColorMatrix values="0 0 0 0 0.31 0 0 0 0 0.12 0 0 0 0 0.05 1.8 0 0 0 -0.81"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust2"><feTurbulence type="fractalNoise" baseFrequency="0.032 0.058" numOctaves="4" seed="57"/><feColorMatrix values="0 0 0 0 0.26 0 0 0 0 0.10 0 0 0 0 0.05 1.8 0 0 0 -0.75"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust3"><feTurbulence type="fractalNoise" baseFrequency="0.043 0.030" numOctaves="4" seed="70"/><feColorMatrix values="0 0 0 0 0.24 0 0 0 0 0.11 0 0 0 0 0.05 1.8 0 0 0 -0.79"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust4"><feTurbulence type="fractalNoise" baseFrequency="0.050 0.082" numOctaves="4" seed="83"/><feColorMatrix values="0 0 0 0 0.25 0 0 0 0 0.09 0 0 0 0 0.05 1.8 0 0 0 -0.63"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust5"><feTurbulence type="fractalNoise" baseFrequency="0.027 0.112" numOctaves="4" seed="96"/><feColorMatrix values="0 0 0 0 0.26 0 0 0 0 0.09 0 0 0 0 0.05 1.8 0 0 0 -0.71"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust6"><feTurbulence type="fractalNoise" baseFrequency="0.038 0.113" numOctaves="4" seed="109"/><feColorMatrix values="0 0 0 0 0.28 0 0 0 0 0.11 0 0 0 0 0.05 1.8 0 0 0 -0.71"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="rust7"><feTurbulence type="fractalNoise" baseFrequency="0.070 0.057" numOctaves="4" seed="122"/><feColorMatrix values="0 0 0 0 0.24 0 0 0 0 0.11 0 0 0 0 0.05 1.8 0 0 0 -0.69"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="bloom0" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.12" numOctaves="3" seed="61"/><feColorMatrix values="0 0 0 0 0.24 0 0 0 0 0.1 0 0 0 0 0.04 2 0 0 0 -0.55" result="n"/><feComposite in="n" in2="b" operator="in"/></filter>
+<filter id="bloom1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="67"/><feColorMatrix values="0 0 0 0 0.19 0 0 0 0 0.08 0 0 0 0 0.03 2 0 0 0 -0.5" result="n"/><feComposite in="n" in2="b" operator="in"/></filter>
+<filter id="bloom2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="2" seed="71"/><feColorMatrix values="0 0 0 0 0.29 0 0 0 0 0.12 0 0 0 0 0.04 2.2 0 0 0 -0.65" result="n"/><feComposite in="n" in2="b" operator="in"/></filter>
+<filter id="blotch0" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="81"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.5" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
+<filter id="blotch1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="83"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 -0.45" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
+<filter id="blotch2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="2" seed="89"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.4 0 0 0 -0.6" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
+<filter id="pipePatches"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="21"/><feColorMatrix values="0 0 0 0 0.07 0 0 0 0 0.055 0 0 0 0 0.04 2.1 0 0 0 -0.95"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="pipePits"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 3.4 0 0 0 -2.2"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="faceStreaks"><feTurbulence type="fractalNoise" baseFrequency="0.05 0.007" numOctaves="3" seed="91"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 2.2 0 0 0 -0.9"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<linearGradient id="boxGrime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0a07" stop-opacity="0.12"/><stop offset="0.45" stop-color="#0d0a07" stop-opacity="0"/><stop offset="0.8" stop-color="#0d0a07" stop-opacity="0.2"/><stop offset="1" stop-color="#0d0a07" stop-opacity="0.45"/></linearGradient>
+<filter id="dusty"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="63"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.8" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
+<filter id="broken"><feTurbulence type="fractalNoise" baseFrequency="0.05 0.2" numOctaves="2" seed="57"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.6 0 0 0 -1" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
+<filter id="crackFx" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse"><feMorphology in="SourceAlpha" operator="dilate" radius="1.6"/><feGaussianBlur stdDeviation="1.6"/><feColorMatrix values="0 0 0 0 0.04 0 0 0 0 0.035 0 0 0 0 0.03 0 0 0 0.32 0" result="halo"/><feOffset in="SourceAlpha" dx="0.7" dy="1.1"/><feComposite in2="SourceAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0.84 0 0 0 0 0.82 0 0 0 0 0.78 0 0 0 0.09 0" result="lip"/><feMerge><feMergeNode in="halo"/><feMergeNode in="lip"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="paintWear"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="4" seed="59"/><feColorMatrix values="0 0 0 0 0.2 0 0 0 0 0.19 0 0 0 0 0.17 2 0 0 0 -1.05"/><feComposite in2="SourceGraphic" operator="in"/></filter>
 </defs>`;
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${defs}${out.join("")}</svg>`;
