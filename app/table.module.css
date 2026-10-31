@@ -10,10 +10,12 @@
 .pin {
   position: relative;
   filter: drop-shadow(0 8px 12px #000b) drop-shadow(0 1px 1px #0008);
+  /* Its own layer: the shadow is drawn by the graphics chip, and scrolling only moves it. */
+  will-change: transform;
 }
 
 /* Old, dirty paper. The note's text sits on the element; the paper itself is the
-   ::before layer behind it, so the torn-edge filter frays the paper but never the text.
+   ::before layer behind it, so the torn outline cuts the paper but never the text.
    All dirt is generated noise (SVG feTurbulence), so there are no image files. */
 .paper {
   position: relative;
@@ -26,11 +28,8 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  /* The torn edge is an SVG filter, which Safari works out on the CPU, slowly, over the
-     whole sheet. On its own layer the sheet is drawn once and kept: tapping, highlighting
-     and dimming the buttons on it no longer makes Safari redraw the paper. */
-  will-change: transform;
-  transform: translateZ(0);
+  /* The torn outline, worked out once per note size (torn-edge.ts, set by torn-edges.tsx). */
+  clip-path: var(--torn, none);
 }
 
 /* The paper look of every note. */
@@ -52,7 +51,6 @@
   background-size: 100% 100%, 100% 100%, 100% 100%, 180px 180px, 400px 400px, 560px 560px, 300px 300px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   box-shadow: inset 0 0 22px #3a2a1299, inset 0 0 4px #2a1d0ccc;
-  filter: url(#torn-paper);
 }
 
 /* Setup: a clipboard notice */

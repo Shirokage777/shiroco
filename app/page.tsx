@@ -6,6 +6,7 @@ import "@fontsource/courier-prime/latin-700.css";
 import "@fontsource/courier-prime/latin-700-italic.css";
 import SignOut from "./sign-out";
 import Table from "./table";
+import TornEdges from "./torn-edges";
 import styles from "./page.module.css";
 
 // Abandoned bunker look (Sean's pick, 2026-10-30): concrete, rust, hazard stripes, typewriter notices.
@@ -15,14 +16,8 @@ import styles from "./page.module.css";
 export default function Home() {
   return (
     <div className={styles.bunker}>
-      {/* Frays the paper outline: fractal noise pushes the edge pixels in and out,
-          like torn, worn paper. Used by .paper::before in table.module.css. */}
-      <svg width="0" height="0" aria-hidden="true" style={{ position: "absolute" }}>
-        <filter id="torn-paper" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="3" seed="11" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </svg>
+      {/* Torn outlines for the paper notes (torn-edges.tsx). */}
+      <TornEdges />
       <div className={styles.hazard} aria-hidden="true" />
       <main className={styles.page}>
         <Table />
