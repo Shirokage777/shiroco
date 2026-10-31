@@ -217,6 +217,22 @@ function bleed(x, y, strength = 1) {
 }
 // A rust bloom: an irregular patch of thick rust, swelling out of a joint or bolt.
 const bloom = (cx, cy, rx, ry) => add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" fill="#000" filter="url(#bloom${Math.floor(frand() * 3)})" opacity="${f(fb(0.6, 1))}"/>`);
+// Dings and dents: a dark dent with a lit lower lip, like the hazard bars. They use a random
+// of their own, so adding them moved nothing else on the wall.
+let dseed = 4242;
+const drand = () => ((dseed = (dseed * 16807) % 2147483647) - 1) / 2147483646;
+const db = (a, b) => a + drand() * (b - a);
+function ding(x, y, size) {
+  const rx = size;
+  const ry = size * db(0.45, 0.75);
+  const tilt = f(db(-25, 25));
+  add(`<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(rx)}" ry="${f(ry)}" fill="#000" fill-opacity="${f(db(0.3, 0.45))}" transform="rotate(${tilt} ${f(x)} ${f(y)})"/>`);
+  add(`<ellipse cx="${f(x + 0.5)}" cy="${f(y + ry * 0.7)}" rx="${f(rx * 0.8)}" ry="${f(ry * 0.4)}" fill="#e6e1d6" fill-opacity="${f(db(0.1, 0.2))}" transform="rotate(${tilt} ${f(x)} ${f(y)})"/>`);
+}
+function dings(x, y, w, h, n, maxSize) {
+  for (let i = 0; i < n; i++) ding(x + db(4, w - 4), y + db(3, h - 3), db(1.8, maxSize));
+}
+
 // Spots of dirt: blotches of different size and darkness, never an even coat.
 function spots(x, y, w, h, n, colour = "#120e0a", [lo, hi] = [0.3, 0.75]) {
   for (let i = 0; i < n; i++) {
@@ -244,6 +260,9 @@ function pipeSurface(vertical, at, d, from, to) {
   const shape = vertical ? `<rect x="${at}" y="${from}" width="${d}" height="${to - from}"/>` : `<rect x="${from}" y="${at}" width="${to - from}" height="${d}"/>`;
   over(shape, "pipePatches", 0.95);
   over(shape, "pipePits", 1);
+  const along = to - from;
+  if (vertical) dings(at, from, d, along, Math.round(along / 140), Math.min(5, d * 0.18));
+  else dings(from, at, along, d, Math.round(along / 140), Math.min(5, d * 0.18));
   const clampTo = (v) => Math.min(at + d - 1.5, Math.max(at + 1.5, v));
   for (let i = 0, n = Math.round((to - from) / 22); i < n; i++) {
     const p = fb(from, to);
@@ -401,6 +420,7 @@ function weatherBox(x, y, w, h, rx, onBox = false, dirt = 1) {
   add(face.replace("/>", ` fill="url(#boxGrime)"/>`));
   add(`<rect x="${x + 2}" y="${y}" width="${w - 4}" height="${f(Math.min(10, h * 0.08))}" fill="#8a7f6c" opacity="${f(fb(0.25, 0.45))}" filter="url(#dusty)"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="${f(0.6 * dirt)}" filter="url(#edgeGrime)"/>`);
+  if (onBox) dings(x, y, w, h, Math.max(3, Math.round((w * h) / 3500)), 5);
   if (onBox) {
     // Stains and mould, brown and dark green, kept to the box's face.
     spots(x, y, w, h, Math.round(((w * h) / 700) * dirt), "#2a2117", [0.2, 0.5].map((o) => o * dirt));
