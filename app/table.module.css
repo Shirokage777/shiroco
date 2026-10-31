@@ -257,78 +257,31 @@
   background: #ffffff26;
 }
 
-/* Unfolding the note. The card shows 1/8, 1/4, 1/2, then all of itself, while a
-   flap (the paper's back) swings down from each fold line. Clip insets are negative
-   at the sides so the frayed edges are never cut. */
-.unfold {
-  animation: unfold 1.5s linear 0.1s both;
-}
-
-@keyframes unfold {
-  0%,
-  33% {
-    clip-path: inset(-24px -24px 87.5% -24px);
-  }
-  33.1%,
-  66% {
-    clip-path: inset(-24px -24px 75% -24px);
-  }
-  66.1%,
-  99.9% {
-    clip-path: inset(-24px -24px 50% -24px);
-  }
-  100% {
-    clip-path: inset(-24px);
-  }
-}
-
+/* Fold flaps: the paper's back, swinging along a fold line. The unfold makes its own
+   (unfold.ts); these three serve the refold on Done. Invisible until animated. */
 .flap {
   position: absolute;
   z-index: 2;
   left: 0;
   right: 0;
   opacity: 0;
-  pointer-events: none; /* the flaps stay in place after the animation; clicks must pass through */
+  pointer-events: none; /* flaps stay in place after animating; clicks must pass through */
   transform-origin: top center;
-  animation: flap 0.5s ease-in-out forwards;
 }
 
 .flap1 {
   top: 12.5%;
   height: 12.5%;
-  animation-delay: 0.1s;
-  animation-fill-mode: both; /* lies folded over the packet before it opens */
 }
 
 .flap2 {
   top: 25%;
   height: 25%;
-  animation-delay: 0.6s;
 }
 
 .flap3 {
   top: 50%;
   height: 50%;
-  animation-delay: 1.1s;
-}
-
-@keyframes flap {
-  0% {
-    opacity: 1;
-    transform: perspective(1400px) rotateX(178deg);
-  }
-  50% {
-    filter: url(#torn-paper) brightness(0.82);
-  }
-  96% {
-    opacity: 1;
-    transform: perspective(1400px) rotateX(0deg);
-    filter: url(#torn-paper) brightness(1);
-  }
-  100% {
-    opacity: 0;
-    transform: perspective(1400px) rotateX(0deg);
-  }
 }
 
 /* The draw note: a small note holding only the Draw card button. When it turns into the
@@ -338,9 +291,8 @@
   padding: 30px 22px;
 }
 
-/* Done: the unfold backwards. The big flap swings up first, the small one last.
-   These need keyframes of their own: reusing "unfold"/"flap" with direction: reverse
-   would not restart the finished animations, and the card would just jump shut. */
+/* Done: the card folds back up to 1/8 of its size. The big half swings up first,
+   the smallest fold last. */
 .refold {
   animation: refold 1.5s linear both;
 }
@@ -459,10 +411,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .unfold {
-    animation: none;
-  }
-
   .flap {
     display: none;
   }

@@ -38,7 +38,9 @@ function face(content: HTMLElement, offsetX: number, slice: number, width: numbe
 }
 
 // Builds the sheet over `note`, hides the note, plays the steps, then calls `done`.
-function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, backClass: string | null, done: () => void, startHeight = 0) {
+// leaving: the note is about to be replaced, so it stays hidden; showing it again for even a
+// frame before React swaps it out is what made the old note flicker back.
+function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, backClass: string | null, done: () => void, startHeight = 0, leaving = true) {
   const host = note.parentElement;
   if (!host) return done();
   const width = note.offsetWidth;
@@ -107,8 +109,9 @@ function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, back
   host.append(layer);
   window.setTimeout(() => {
     done();
-    layer.remove();
-    note.style.visibility = "";
+    if (!leaving) note.style.visibility = "";
+    // Keep the sheet until the next note has been drawn on screen, so no empty frame shows.
+    requestAnimationFrame(() => requestAnimationFrame(() => layer.remove()));
   }, ms + 30);
 }
 
@@ -135,6 +138,6 @@ export function turnIn(note: HTMLElement, done: () => void = () => {}) {
     { angle: 90, bend: 1, light: 0.75 },
     { angle: 0, bend: 0, light: 1 },
   ];
-  turn(note, steps, TURN_MS / 2, "ease-out", null, done, awayHeight);
+  turn(note, steps, TURN_MS / 2, "ease-out", null, done, awayHeight, false);
   awayHeight = 0;
 }

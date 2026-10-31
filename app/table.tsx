@@ -5,9 +5,10 @@ import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameO
 import type { Card } from "@/lib/types";
 import { flipOver, turnAway, turnIn } from "./flip";
 import { Symbol, SymbolText } from "./symbol-text";
+import { unfold } from "./unfold";
 import styles from "./table.module.css";
 
-const REFOLD_MS = 1500; // the unfold animation played backwards (table.module.css)
+const REFOLD_MS = 1500; // the refold animation (table.module.css)
 
 const stillWanted = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -28,6 +29,7 @@ export default function Table() {
   const noteRef = useRef<HTMLElement>(null);
   const openRef = useRef<HTMLElement>(null);
   const turnInNext = useRef(false);
+  const unfoldFrom = useRef(0); // height of the folded note that was just turned over
 
   useEffect(() => {
     fetch("/api/cards")
@@ -45,6 +47,13 @@ export default function Table() {
     else setBusy(false);
   }, [game]);
 
+  // After Triggered: the card unfolds from the size of the note that was turned over.
+  useLayoutEffect(() => {
+    if (!unfoldFrom.current || !game?.revealed || !openRef.current) return;
+    unfold(openRef.current, unfoldFrom.current, styles.flap);
+    unfoldFrom.current = 0;
+  }, [game?.revealed]);
+
   // Turns `note` away, then changes the game; the next note turns in (effect above).
   function turnTo(note: HTMLElement | null, change: (g: GameState) => GameState) {
     if (busy) return;
@@ -56,11 +65,12 @@ export default function Table() {
     });
   }
 
-  // Triggered: the folded note is turned over, bending as it goes, then it unfolds (CSS).
+  // Triggered: the folded note is turned over, bending as it goes, then it unfolds (unfold.ts).
   function trigger() {
     if (busy) return;
     if (!noteRef.current || stillWanted()) return setGame((g) => (g ? reveal(g) : g));
     setBusy(true);
+    unfoldFrom.current = noteRef.current.offsetHeight;
     flipOver(noteRef.current, styles.paper, () => {
       setGame((g) => (g ? reveal(g) : g));
       setBusy(false);
@@ -154,9 +164,8 @@ export default function Table() {
 
       {card && (
         <div className={`${styles.pin} ${styles.clipped} ${refolding ? styles.refolding : ""}`}>
-          {/* When triggered, the note unfolds three times (1/8 → 1/4 → 1/2 → full):
-              the card is revealed step by step while a paper flap swings down at each fold.
-              On Done it plays backwards: the flaps swing up again and the card folds away. */}
+          {/* Triggered: the card unfolds from the folded note's size (unfold.ts).
+              Done: these flaps fold it back up to 1/8, step by step (CSS .refolding). */}
           {game.revealed && (
             <>
               <div className={`${styles.flap} ${styles.flap1}`} aria-hidden="true" />
@@ -167,7 +176,7 @@ export default function Table() {
           <article
             key={game.revealed ? "open" : "folded"}
             ref={game.revealed ? openRef : noteRef}
-            className={`${styles.card} ${styles.paper} ${game.revealed ? (refolding ? styles.refold : styles.unfold) : ""}`}
+            className={`${styles.card} ${styles.paper} ${refolding ? styles.refold : ""}`}
             aria-live="polite"
           >
             {/* The corner marks of the real card: mature and not used in co-op. */}
