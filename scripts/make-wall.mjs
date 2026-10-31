@@ -218,10 +218,10 @@ function bleed(x, y, strength = 1) {
 // A rust bloom: an irregular patch of thick rust, swelling out of a joint or bolt.
 const bloom = (cx, cy, rx, ry) => add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(ry)}" fill="#000" filter="url(#bloom${Math.floor(frand() * 3)})" opacity="${f(fb(0.6, 1))}"/>`);
 // Spots of dirt: blotches of different size and darkness, never an even coat.
-function spots(x, y, w, h, n) {
+function spots(x, y, w, h, n, colour = "#120e0a", [lo, hi] = [0.3, 0.75]) {
   for (let i = 0; i < n; i++) {
     const rx = fb(5, 32);
-    add(`<ellipse cx="${f(x + fb(0, w))}" cy="${f(y + fb(0, h))}" rx="${f(rx)}" ry="${f(rx * fb(0.4, 1))}" fill="#120e0a" opacity="${f(fb(0.3, 0.75))}" filter="url(#blotch${Math.floor(frand() * 3)})"/>`);
+    add(`<ellipse cx="${f(x + fb(0, w))}" cy="${f(y + fb(0, h))}" rx="${f(rx)}" ry="${f(rx * fb(0.4, 1))}" fill="${colour}" opacity="${f(fb(lo, hi))}" filter="url(#blotch${Math.floor(frand() * 3)})"/>`);
   }
 }
 // Bolts: most rusted, some seized dark, now and then one gone with only its hole left.
@@ -384,8 +384,16 @@ function cables(points, colours) {
 // the paint faded unevenly, pitted and blotched with grime like the pipes, dirt run down the
 // face in streaks and gathered thick towards the bottom, dust settled along the top, grime
 // worked into the edges, spots of dirt, a little rust and fine scratches.
-function weatherBox(x, y, w, h, rx) {
+// A cabinet standing off the wall (onBox) keeps all of it on its own face, so nothing runs
+// across its edge onto the concrete, its grime is softer and browner, and its edges catch
+// the light; a flat sign may share its grime with the wall.
+let boxClip = 0;
+function weatherBox(x, y, w, h, rx, onBox = false) {
   const face = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+  if (onBox) {
+    const id = `box${boxClip++}`;
+    add(`<clipPath id="${id}">${face}</clipPath><g clip-path="url(#${id})">`);
+  }
   over(face, "paintWear", 0.6);
   over(face, "pipePatches", 0.9);
   over(face, "pipePits", 1);
@@ -393,7 +401,8 @@ function weatherBox(x, y, w, h, rx) {
   add(face.replace("/>", ` fill="url(#boxGrime)"/>`));
   add(`<rect x="${x + 2}" y="${y}" width="${w - 4}" height="${f(Math.min(10, h * 0.08))}" fill="#8a7f6c" opacity="${f(fb(0.25, 0.45))}" filter="url(#dusty)"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="0.6" filter="url(#edgeGrime)"/>`);
-  spots(x, y, w, h, Math.round((w * h) / 1100));
+  if (onBox) spots(x, y, w, h, Math.round((w * h) / 1100), "#2a2117", [0.18, 0.42]);
+  else spots(x, y, w, h, Math.round((w * h) / 1100));
   for (let i = 0, n = Math.floor(fb(0, 2.5)); i < n; i++) {
     const ex = frand() < 0.5 ? x + fb(0, 6) : x + w - fb(0, 6);
     bloom(ex, y + fb(0, h), fb(2, 5), fb(4, 9));
@@ -402,6 +411,14 @@ function weatherBox(x, y, w, h, rx) {
     const sx = x + fb(6, w - 6);
     const sy = y + fb(6, h - 6);
     add(`<line x1="${f(sx)}" y1="${f(sy)}" x2="${f(sx + fb(-30, 30))}" y2="${f(sy + fb(-8, 8))}" stroke="#c9c2b2" stroke-opacity="${f(fb(0.06, 0.16))}" stroke-width="0.8"/>`);
+  }
+  if (onBox) {
+    add(`</g>`);
+    // The box's own edges: lit along the top and left, dark along the bottom and right.
+    add(`<rect x="${x + 1}" y="${y}" width="${w - 2}" height="1.2" fill="#d8d3c6" opacity="0.18"/>`);
+    add(`<rect x="${x}" y="${y + 1}" width="1.2" height="${h - 2}" fill="#d8d3c6" opacity="0.12"/>`);
+    add(`<rect x="${x + 1}" y="${y + h - 1.6}" width="${w - 2}" height="1.6" fill="#000" opacity="0.55"/>`);
+    add(`<rect x="${x + w - 1.4}" y="${y + 1}" width="1.4" height="${h - 2}" fill="#000" opacity="0.45"/>`);
   }
 }
 
@@ -428,7 +445,7 @@ function breakerPanel(x, y, w, h) {
   add(`<polygon points="${lx + 34},${ly + 40} ${lx + 46},${ly + 40} ${lx + 40},${ly + 30}" fill="#585b55"/>`);
   add(`<rect x="${x + 22}" y="${y + 92}" width="${w - 44}" height="16" fill="#cfc8b2" fill-opacity="0.45"/>`);
   add(`<text x="${x + w / 2}" y="${y + 104}" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="bold" font-size="11" letter-spacing="1" fill="#1a1917" fill-opacity="0.7">MAIN BREAKER</text>`);
-  weatherBox(x, y, w, h, 3);
+  weatherBox(x, y, w, h, 3, true);
   for (const [sx, sy] of [[x + 5, y + 5], [x + w - 5, y + 5], [x + 5, y + h - 5], [x + w - 5, y + h - 5]]) bolt(sx, sy, false);
   for (let i = 0; i < 2; i++) bleed(x + fb(6, w - 6), y + h, fb(0.4, 0.8));
 }
@@ -439,7 +456,7 @@ function junctionBox(x, y, w, h, conduitTo) {
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#4b4f47"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="url(#blockLight)"/>`);
   add(`<rect x="${x + 10}" y="${y + 10}" width="${w - 20}" height="${h - 20}" rx="2" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="2"/>`);
-  weatherBox(x, y, w, h, 4);
+  weatherBox(x, y, w, h, 4, true);
   for (const [sx, sy] of [[x + 9, y + 9], [x + w - 9, y + 9], [x + 9, y + h - 9], [x + w - 9, y + h - 9]]) bolt(sx, sy, false);
   bleed(x + fb(6, w - 6), y + h, fb(0.4, 0.8));
 }
@@ -448,7 +465,7 @@ function vent(x, y, w, h) {
   add(`<rect x="${x + 6}" y="${y + 8}" width="${w}" height="${h}" fill="#000" fill-opacity="0.5" filter="url(#shadow)"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#3c3a36"/>`);
   for (let sy = y + 12; sy < y + h - 10; sy += 12) {
-    add(`<rect x="${x + 10}" y="${sy}" width="${w - 20}" height="7" fill="#0e0d0c"/>`);
+    add(`<rect x="${x + 10}" y="${sy}" width="${w - 20}" height="7" fill="#24221f"/>`);
     add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2" fill="#fff" fill-opacity="0.06"/>`);
     add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2.5" fill="#8a7f6c" opacity="${f(fb(0.3, 0.6))}" filter="url(#dusty)"/>`);
     if (frand() < 0.15) bloom(x + fb(14, w - 14), sy + 8, fb(4, 10), 2);
@@ -456,7 +473,7 @@ function vent(x, y, w, h) {
   weatherBox(x, y, w, h, 3);
   for (const [sx, sy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + h - 6], [x + w - 6, y + h - 6]]) bolt(sx, sy, false);
   // Soot blown out of the vent onto the wall above it.
-  add(`<ellipse cx="${x + w / 2}" cy="${y - 20}" rx="${w * 0.6}" ry="60" fill="#0a0908" fill-opacity="0.5" filter="url(#sooty)"/>`);
+  add(`<ellipse cx="${x + w / 2}" cy="${y - 20}" rx="${w * 0.6}" ry="60" fill="#0a0908" fill-opacity="0.32" filter="url(#sooty)"/>`);
   for (let i = 0; i < 2; i++) bleed(x + fb(10, w - 10), y + h, fb(0.4, 0.8));
 }
 
