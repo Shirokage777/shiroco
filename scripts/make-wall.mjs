@@ -451,8 +451,8 @@ function vent(x, y, w, h) {
   for (let i = 0; i < 2; i++) bleed(x + fb(10, w - 10), y + h, fb(0.4, 0.8));
 }
 
-// An enamel sign screwed to the wall: faded, chipped down to the steel, the chips rusting,
-// a few spots of grime, and rust running from its screws.
+// An enamel sign screwed to the wall: faded, a little rust at corners and edges, a few spots
+// of grime, and rust running from its screws.
 function warningSign(x, y, w, h, tilt) {
   add(`<g transform="rotate(${tilt} ${x + w / 2} ${y + h / 2})">`);
   add(`<rect x="${x + 6}" y="${y + 9}" width="${w}" height="${h}" fill="#000" fill-opacity="0.55" filter="url(#shadow)"/>`);
@@ -461,21 +461,24 @@ function warningSign(x, y, w, h, tilt) {
   add(`<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${h - 12}" rx="2" fill="none" stroke="#1a1816" stroke-width="3"/>`);
   add(`<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="34" fill="#1a1816"/>`);
   add(`<text x="${x + w / 2}" y="${y + 33}" text-anchor="middle" font-family="Impact, 'Arial Narrow', sans-serif" font-size="26" letter-spacing="3" fill="#b3922a">DANGER</text>`);
-  const tx = x + 40;
+  // The flash and HIGH VOLTAGE as one group, centred on the sign: triangle 68 wide, a 12 gap,
+  // then the words (about 75 wide in Impact 22).
+  const tx = x + (w - 155) / 2 + 34;
   const ty = y + 54;
   add(`<polygon points="${tx},${ty} ${tx + 34},${ty + 58} ${tx - 34},${ty + 58}" fill="none" stroke="#1a1816" stroke-width="5" stroke-linejoin="round"/>`);
   add(`<path d="M${tx + 4},${ty + 16} l-11,19 h9 l-6,15 l14,-21 h-9 l6,-13 z" fill="#1a1816"/>`);
-  add(`<text x="${x + 86}" y="${y + 80}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">HIGH</text>`);
-  add(`<text x="${x + 86}" y="${y + 104}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">VOLTAGE</text>`);
+  add(`<text x="${tx + 46}" y="${y + 80}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">HIGH</text>`);
+  add(`<text x="${tx + 46}" y="${y + 104}" font-family="Impact, 'Arial Narrow', sans-serif" font-size="22" fill="#1a1816">VOLTAGE</text>`);
   add(`<text x="${x + w / 2}" y="${y + h - 16}" text-anchor="middle" font-family="'Arial Narrow', Arial, sans-serif" font-weight="bold" font-size="11" letter-spacing="1" fill="#1a1816">AUTHORISED PERSONNEL ONLY</text>`);
-  // Chips, mostly along the edges and corners, each rusting out from the bare steel.
-  for (let i = 0; i < 12; i++) {
-    const edge = frand() < 0.7;
-    const cx = edge ? (frand() < 0.5 ? x + fb(0, 16) : x + w - fb(0, 16)) : x + fb(10, w - 10);
-    const cy = edge ? y + fb(0, h) : frand() < 0.5 ? y + fb(0, 14) : y + h - fb(0, 14);
-    const rx = fb(2.5, 9);
-    if (frand() < 0.5) bloom(cx, cy + 1, rx * 1.3, rx * 1.1);
-    add(`<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(rx)}" ry="${f(rx * fb(0.5, 0.9))}" fill="#2a221d" transform="rotate(${f(fb(0, 180))} ${f(cx)} ${f(cy)})"/>`);
+  // A little rust where the enamel wears through first: some corners, a few spots on the edges.
+  for (const [cx, cy] of [[x + 3, y + 3], [x + w - 3, y + 3], [x + 3, y + h - 3], [x + w - 3, y + h - 3]]) {
+    if (frand() < 0.6) bloom(cx, cy, fb(3, 6), fb(3, 6));
+  }
+  for (let i = 0, n = Math.floor(fb(2, 4)); i < n; i++) {
+    const side = Math.floor(frand() * 4);
+    const along = fb(0.15, 0.85);
+    const [ex, ey] = [[x + w * along, y + 1], [x + w - 1, y + h * along], [x + w * along, y + h - 1], [x + 1, y + h * along]][side];
+    bloom(ex, ey, fb(2, 5), fb(2, 4));
   }
   spots(x, y, w, h, 11);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="none" stroke="#0b0907" stroke-width="8" stroke-opacity="0.35" filter="url(#edgeGrime)"/>`);
