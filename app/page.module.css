@@ -19,13 +19,24 @@
   grid-template-rows: auto 1fr auto;
   color: var(--chalk);
   font-family: var(--font-typewriter), "Courier New", monospace;
-  background-color: var(--concrete);
-  /* Faint concrete grain and stains, drawn in CSS so there are no image files. */
+  background-color: #4a4844;
+  /* The bunker wall: grey concrete blocks, grimy at every joint and stained with water, with
+     pipes, cables, a breaker panel, a junction box, a vent and a warning sign
+     (public/bunker-wall.svg, made by scripts/make-wall.mjs), plus fine pits at screen scale
+     and a vignette as if lit by one lamp. */
   background-image:
-    radial-gradient(circle at 20% 30%, #ffffff08 0 2px, transparent 3px),
-    radial-gradient(circle at 70% 60%, #00000014 0 40px, transparent 120px),
-    radial-gradient(circle at 85% 15%, #ffffff06 0 60px, transparent 160px);
-  background-size: 7px 7px, 100% 100%, 100% 100%;
+    var(--metal-pits), url("/bunker-wall.svg"),
+    radial-gradient(ellipse at 50% 35%, transparent 40%, #000000a0);
+  background-size: 220px 220px, 1600px 1400px, 100% 100%;
+  background-position: 0 0, center top, 0 0;
+  background-attachment: scroll, scroll, fixed;
+}
+
+/* On phones the wall is shown smaller, so a screen holds several plates, not one. */
+@media (max-width: 600px) {
+  .bunker {
+    background-size: 220px 220px, 1000px 875px, 100% 100%;
+  }
 }
 
 .hazard {
