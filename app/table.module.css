@@ -136,8 +136,8 @@
 
 /* Metal plates, old and worn, never shiny. They sit raised on their edge (--edge) and sink
    in while pressed, keeping only the worn bevel (--bevel). Textures: globals.css.
-   Rust-red (main action) and tin (Not Triggered) are patchy: rubbed and grimy patches, pits,
-   scratches at random angles. Steel (New game, Cancel, Sign out) keeps its brushed look. */
+   Rust-red (main action): grimy patches, pits, rust, scratches at random angles.
+   Tin (Not Triggered): rubbed and grimy patches, pits, scratches; no rust. Steel (New game, Cancel, Sign out) keeps its brushed look. */
 .setup .primary,
 .table .primary,
 .table .secondary,
@@ -164,8 +164,8 @@
   background-color: var(--rust);
   background-image:
     var(--metal-scratches), var(--metal-pits), var(--metal-rust), var(--metal-patches-dark),
-    var(--metal-patches-light), var(--metal-wear), linear-gradient(180deg, #a35630, #6c3419);
-  background-size: 300px 90px, auto, auto, auto, auto, auto, auto;
+    var(--metal-wear), linear-gradient(180deg, #a35630, #6c3419);
+  background-size: 300px 90px, auto, auto, auto, auto, auto;
   border-color: #3a1b0b;
   color: #f0e2cf;
   text-transform: uppercase;
@@ -190,9 +190,9 @@
   --edge: #3f3b35;
   background-color: #b3ab98;
   background-image:
-    var(--metal-scratches), var(--metal-pits), var(--metal-rust), var(--metal-patches-dark),
-    var(--metal-patches-light), var(--metal-wear), linear-gradient(180deg, #c9c2b0, #958c78);
-  background-size: 300px 90px, auto, auto, auto, auto, auto, auto;
+    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-patches-light),
+    var(--metal-wear), linear-gradient(180deg, #c9c2b0, #958c78);
+  background-size: 300px 90px, auto, auto, auto, auto, auto;
   border: 1px solid #5d5850;
   color: var(--rust-dark);
   letter-spacing: 0.05em;
