@@ -527,9 +527,12 @@
   }
 }
 
-/* The Done strip: one more fold of paper hinged at the bottom edge of the card. Folded
-   away it lies up behind the card (hidden by it); picking an option swings it down and
-   the space below the card opens for it. The card above never changes. */
+/* The Done strip: the bottom of the same sheet, folded back behind the card. Picking an
+   option swings it down from behind (the opposite way to the unfolding flaps, which come
+   from the front), and the space below the card opens for it. The card above never
+   changes. To read as one sheet, the strip's top tucks under the card's bottom edge,
+   its paper starts above the hinge (hidden behind the card, so no torn top edge or dark
+   corners show at the join), and a crease marks the fold. */
 .cardStack {
   display: grid;
 }
@@ -540,30 +543,59 @@
 
 .doneWrap {
   position: relative;
+  z-index: 0;
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.45s ease;
 }
 
+/* Once the strip is down it comes in front of the card's bottom edge, its paper reaching
+   up over the card's tear and fading in (mask below), so card and strip are one sheet. */
 .doneOpen {
+  z-index: 2;
   grid-template-rows: 1fr;
+  transition: grid-template-rows 0.45s ease, z-index 0s linear 0.45s;
+}
+
+/* The mask needs a box that also holds the strip's frayed edges and the paper reaching up
+   over the card, so it gets padding all round, given back by negative margins. */
+.doneMask {
+  padding: 50px 14px 16px;
+  margin: -50px -14px -16px;
+  -webkit-mask-image: linear-gradient(transparent 22px, #000 50px);
+  mask-image: linear-gradient(transparent 22px, #000 50px);
 }
 
 .doneFold {
   min-height: 0;
   filter: drop-shadow(0 8px 12px #000b) drop-shadow(0 1px 1px #0008);
-  transform: rotate(-0.5deg);
+  transform: translateY(-8px) rotate(-0.5deg);
 }
 
 .doneFlap {
   display: grid;
   gap: 14px;
-  padding: 16px 22px 24px;
+  padding: 22px 22px 24px;
   font-size: 17px;
   line-height: 1.55;
   transform-origin: 50% 0;
-  transform: perspective(900px) rotateX(178deg);
+  transform: perspective(900px) rotateX(-178deg);
   transition: transform 0.45s ease-in-out;
+}
+
+.doneFlap::before {
+  inset: -30px 0 0;
+}
+
+.doneFlap::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  top: 9px;
+  height: 4px;
+  background: linear-gradient(transparent, #00000026 45%, #ffffff29 60%, transparent);
 }
 
 .doneOpen .doneFlap {

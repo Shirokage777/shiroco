@@ -250,9 +250,11 @@ export default function Table() {
         {game.revealed && (
           <div className={`${styles.doneWrap} ${game.chosen !== null && !refolding ? styles.doneOpen : ""}`} inert={game.chosen === null || refolding}>
             <div className={styles.doneFold}>
+              <div className={styles.doneMask}>
               <div className={`${styles.doneFlap} ${styles.paper}`}>
                 <p className={styles.hint}>Changed your mind? Tap your choice again to undo it, or pick another option.</p>
                 <button className={styles.primary} onClick={done}>Done</button>
+              </div>
               </div>
             </div>
           </div>
