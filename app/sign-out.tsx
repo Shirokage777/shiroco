@@ -18,7 +18,7 @@ export default function SignOut() {
 
   return (
     <div className={table.table}>
-      <div className={table.pin}>
+      <div className={`${table.pin} ${table.growFromBottom}`}>
         <div className={`${table.ask} ${table.paper}`} role="alertdialog" aria-label="Sign out?">
           <span>Do you really want to sign out?</span>
           <button className={table.primary} onClick={signOut}>Yes, sign out</button>

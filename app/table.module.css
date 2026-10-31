@@ -442,3 +442,39 @@
   height: 22px;
   width: auto;
 }
+
+/* Confirmation notes grow out of the button that asked for them: New game sits top right,
+   Sign out at the bottom. The pin's slight tilt is kept throughout. */
+.growFromTopRight,
+.growFromBottom {
+  animation: growNote 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+.growFromTopRight {
+  transform-origin: 92% 0;
+}
+
+.growFromBottom {
+  transform-origin: 50% 100%;
+}
+
+@keyframes growNote {
+  from {
+    opacity: 0;
+    transform: rotate(-0.5deg) scale(0.12);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-0.5deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .growFromTopRight,
+  .growFromBottom {
+    animation: none;
+  }
+}
