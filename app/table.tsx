@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
 import type { Card } from "@/lib/types";
 import { flipOver, turnAway, turnIn } from "./flip";
@@ -177,8 +177,8 @@ export default function Table() {
 
       {/* Asked on the page, not with a browser pop-up: some browsers block or auto-cancel pop-ups. */}
       {askNewGame && (
-        <div className={`${styles.pin} ${closingAsk ? styles.shrinkToTopRight : styles.growFromTopRight}`}>
-          <div className={`${styles.ask} ${styles.paper}`} role="alertdialog" aria-label="Start a new game?">
+        <div className={styles.pin}>
+          <div className={`${styles.ask} ${styles.paper} ${closingAsk ? styles.shrinkToTopRight : styles.growFromTopRight}`} role="alertdialog" aria-label="Start a new game?">
             <span>Start a new game? The deck will be reshuffled.</span>
             <button className={styles.primary} onClick={() => closeAsk(() => setGame(null))}>Yes, new game</button>
             <button className={`${styles.secondary} ${styles.cancel}`} onClick={() => closeAsk()}>Cancel</button>
@@ -235,8 +235,10 @@ export default function Table() {
                 <p><SymbolText text={card.text} /></p>
                 <div className={styles.options}>
                   {card.options.map((option, i) => (
+                    <Fragment key={i}>
+                    {/* A black hazard stripe (the top bar's pattern, yellow left out) marks each option. */}
+                    <div className={styles.hazardRule} aria-hidden="true" />
                     <button
-                      key={i}
                       className={game.chosen === null ? styles.option : game.chosen === i ? styles.chosen : styles.dimmed}
                       onClick={() => setGame(choose(game, i))}
                       aria-pressed={game.chosen === i}
@@ -244,6 +246,7 @@ export default function Table() {
                       <strong>{option.label}</strong>
                       <span><SymbolText text={option.text} /></span>
                     </button>
+                    </Fragment>
                   ))}
                 </div>
                 {game.chosen !== null && (

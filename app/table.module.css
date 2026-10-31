@@ -465,7 +465,8 @@
 }
 
 /* Confirmation notes grow out of the button that asked for them: New game sits top right,
-   Sign out at the bottom. The pin's slight tilt is kept throughout. */
+   Sign out at the bottom. The growing is on the note inside the pin, so the pin keeps the
+   same tilt about its centre as every other note and the notes line up exactly. */
 .growFromTopRight,
 .growFromBottom {
   animation: growNote 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
@@ -495,28 +496,28 @@
 @keyframes shrinkNote {
   from {
     opacity: 1;
-    transform: rotate(-0.5deg) scale(1);
+    transform: scale(1);
   }
   70% {
     opacity: 1;
   }
   to {
     opacity: 0;
-    transform: rotate(-0.5deg) scale(0.12);
+    transform: scale(0.12);
   }
 }
 
 @keyframes growNote {
   from {
     opacity: 0;
-    transform: rotate(-0.5deg) scale(0.12);
+    transform: scale(0.12);
   }
   40% {
     opacity: 1;
   }
   to {
     opacity: 1;
-    transform: rotate(-0.5deg) scale(1);
+    transform: scale(1);
   }
 }
 
@@ -527,4 +528,11 @@
   .shrinkToBottom {
     animation: none;
   }
+}
+
+/* Above each option: the page's hazard stripe (page.module.css .hazard), black only, the
+   yellow left see-through, as wide as the note's text. */
+.hazardRule {
+  height: 14px;
+  background: repeating-linear-gradient(45deg, transparent 0 14px, #1d1d1b 14px 28px);
 }
