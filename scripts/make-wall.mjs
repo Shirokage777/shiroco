@@ -380,15 +380,25 @@ function cables(points, colours) {
   }
 }
 
-// A steel cabinet's weathering: worn edges, spots of grime, rust starting at bolts and seams.
+// Decades of weathering on painted steel, laid over everything on it (labels included):
+// the paint faded unevenly, pitted and blotched with grime like the pipes, dirt run down the
+// face in streaks and gathered thick towards the bottom, dust settled along the top, grime
+// worked into the edges, spots of dirt, a little rust and fine scratches.
 function weatherBox(x, y, w, h, rx) {
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="10" stroke-opacity="0.45" filter="url(#edgeGrime)"/>`);
-  spots(x, y, w, h, Math.round((w * h) / 1500));
+  const face = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+  over(face, "paintWear", 0.6);
+  over(face, "pipePatches", 0.9);
+  over(face, "pipePits", 1);
+  over(face, "faceStreaks", fb(0.6, 0.85));
+  add(face.replace("/>", ` fill="url(#boxGrime)"/>`));
+  add(`<rect x="${x + 2}" y="${y}" width="${w - 4}" height="${f(Math.min(10, h * 0.08))}" fill="#8a7f6c" opacity="${f(fb(0.25, 0.45))}" filter="url(#dusty)"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#0b0907" stroke-width="14" stroke-opacity="0.6" filter="url(#edgeGrime)"/>`);
+  spots(x, y, w, h, Math.round((w * h) / 1100));
   for (let i = 0, n = Math.floor(fb(0, 2.5)); i < n; i++) {
     const ex = frand() < 0.5 ? x + fb(0, 6) : x + w - fb(0, 6);
     bloom(ex, y + fb(0, h), fb(2, 5), fb(4, 9));
   }
-  for (let i = 0, n = Math.floor(fb(2, 6)); i < n; i++) {
+  for (let i = 0, n = Math.floor(fb(5, 10)); i < n; i++) {
     const sx = x + fb(6, w - 6);
     const sy = y + fb(6, h - 6);
     add(`<line x1="${f(sx)}" y1="${f(sy)}" x2="${f(sx + fb(-30, 30))}" y2="${f(sy + fb(-8, 8))}" stroke="#c9c2b2" stroke-opacity="${f(fb(0.06, 0.16))}" stroke-width="0.8"/>`);
@@ -397,9 +407,8 @@ function weatherBox(x, y, w, h, rx) {
 
 function breakerPanel(x, y, w, h) {
   add(`<rect x="${x + 9}" y="${y + 12}" width="${w}" height="${h}" fill="#000" fill-opacity="0.6" filter="url(#shadow)"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#585b55"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#53554f"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="url(#blockLight)"/>`);
-  over(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`, "paintWear", 0.5);
   // Door with a seam, hinges on the left and a latch on the right.
   add(`<rect x="${x + 8}" y="${y + 8}" width="${w - 16}" height="${h - 16}" rx="2" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="1.5"/>`);
   add(`<rect x="${x + 9}" y="${y + 9}" width="${w - 18}" height="1" fill="#fff" fill-opacity="0.08"/>`);
@@ -429,7 +438,6 @@ function junctionBox(x, y, w, h, conduitTo) {
   add(`<rect x="${x + 8}" y="${y + 10}" width="${w}" height="${h}" fill="#000" fill-opacity="0.55" filter="url(#shadow)"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#4b4f47"/>`);
   add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="url(#blockLight)"/>`);
-  over(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>`, "paintWear", 0.6);
   add(`<rect x="${x + 10}" y="${y + 10}" width="${w - 20}" height="${h - 20}" rx="2" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="2"/>`);
   weatherBox(x, y, w, h, 4);
   for (const [sx, sy] of [[x + 9, y + 9], [x + w - 9, y + 9], [x + 9, y + h - 9], [x + w - 9, y + h - 9]]) bolt(sx, sy, false);
@@ -442,6 +450,7 @@ function vent(x, y, w, h) {
   for (let sy = y + 12; sy < y + h - 10; sy += 12) {
     add(`<rect x="${x + 10}" y="${sy}" width="${w - 20}" height="7" fill="#0e0d0c"/>`);
     add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2" fill="#fff" fill-opacity="0.06"/>`);
+    add(`<rect x="${x + 10}" y="${sy + 7}" width="${w - 20}" height="2.5" fill="#8a7f6c" opacity="${f(fb(0.3, 0.6))}" filter="url(#dusty)"/>`);
     if (frand() < 0.15) bloom(x + fb(14, w - 14), sy + 8, fb(4, 10), 2);
   }
   weatherBox(x, y, w, h, 3);
@@ -456,8 +465,7 @@ function vent(x, y, w, h) {
 function warningSign(x, y, w, h, tilt) {
   add(`<g transform="rotate(${tilt} ${x + w / 2} ${y + h / 2})">`);
   add(`<rect x="${x + 6}" y="${y + 9}" width="${w}" height="${h}" fill="#000" fill-opacity="0.55" filter="url(#shadow)"/>`);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#b3922a"/>`);
-  over(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4"/>`, "paintWear", 0.35);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#a8892c"/>`);
   add(`<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="${h - 12}" rx="2" fill="none" stroke="#1a1816" stroke-width="3"/>`);
   add(`<rect x="${x + 6}" y="${y + 6}" width="${w - 12}" height="34" fill="#1a1816"/>`);
   add(`<text x="${x + w / 2}" y="${y + 33}" text-anchor="middle" font-family="Impact, 'Arial Narrow', sans-serif" font-size="26" letter-spacing="3" fill="#b3922a">DANGER</text>`);
@@ -480,8 +488,8 @@ function warningSign(x, y, w, h, tilt) {
     const [ex, ey] = [[x + w * along, y + 1], [x + w - 1, y + h * along], [x + w * along, y + h - 1], [x + 1, y + h * along]][side];
     bloom(ex, ey, fb(2, 5), fb(2, 4));
   }
-  spots(x, y, w, h, 11);
-  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="none" stroke="#0b0907" stroke-width="8" stroke-opacity="0.35" filter="url(#edgeGrime)"/>`);
+  add(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#3a2a14" opacity="0.2"/>`);
+  weatherBox(x, y, w, h, 4);
   for (const [sx, sy] of [[x + 12, y + 12], [x + w - 12, y + 12], [x + 12, y + h - 12], [x + w - 12, y + h - 12]]) bolt(sx, sy, false);
   add(`</g>`);
   for (const sx of [x + 12, x + w - 12]) bleed(sx, y + h - 6, fb(0.6, 1.1));
@@ -546,6 +554,8 @@ const defs = `<defs>
 <filter id="blotch2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feTurbulence type="fractalNoise" baseFrequency="0.11" numOctaves="2" seed="89"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.4 0 0 0 -0.6" result="n"/><feComposite in="b" in2="n" operator="in"/></filter>
 <filter id="pipePatches"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" seed="21"/><feColorMatrix values="0 0 0 0 0.07 0 0 0 0 0.055 0 0 0 0 0.04 2.1 0 0 0 -0.95"/><feComposite in2="SourceGraphic" operator="in"/></filter>
 <filter id="pipePits"><feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 3.4 0 0 0 -2.2"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<filter id="faceStreaks"><feTurbulence type="fractalNoise" baseFrequency="0.05 0.007" numOctaves="3" seed="91"/><feColorMatrix values="0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 2.2 0 0 0 -0.9"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+<linearGradient id="boxGrime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0a07" stop-opacity="0.12"/><stop offset="0.45" stop-color="#0d0a07" stop-opacity="0"/><stop offset="0.8" stop-color="#0d0a07" stop-opacity="0.2"/><stop offset="1" stop-color="#0d0a07" stop-opacity="0.45"/></linearGradient>
 <filter id="dusty"><feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="63"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 0 0 0 -0.8" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
 <filter id="broken"><feTurbulence type="fractalNoise" baseFrequency="0.05 0.2" numOctaves="2" seed="57"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.6 0 0 0 -1" result="n"/><feComposite in="SourceGraphic" in2="n" operator="in"/></filter>
 <filter id="crackFx" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse"><feMorphology in="SourceAlpha" operator="dilate" radius="1.6"/><feGaussianBlur stdDeviation="1.6"/><feColorMatrix values="0 0 0 0 0.04 0 0 0 0 0.035 0 0 0 0 0.03 0 0 0 0.32 0" result="halo"/><feOffset in="SourceAlpha" dx="0.7" dy="1.1"/><feComposite in2="SourceAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0.84 0 0 0 0 0.82 0 0 0 0 0.78 0 0 0 0.09 0" result="lip"/><feMerge><feMergeNode in="halo"/><feMergeNode in="lip"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
