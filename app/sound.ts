@@ -14,6 +14,7 @@ const OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
 const WIND = "/sounds/storm-wind.mp3";
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
 const LEVEL = { wind: 0.55, snow: 0.07, zombies: 0.7, narration: 1 };
+const WIND_FADE = 3; // seconds the storm loop crossfades from its end into its start
 const DUCK = 0.3; // ambience and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
 
@@ -210,25 +211,42 @@ class Sound {
     const windGain = ctx.createGain();
     windGain.gain.value = LEVEL.wind;
     windGain.connect(out);
-    let wind: AudioBufferSourceNode | null = null;
+    const winds = new Set<AudioBufferSourceNode>();
+    let nextPass: ReturnType<typeof setTimeout> | null = null;
     handle.stop = () => {
+      if (nextPass) clearTimeout(nextPass);
       const t = ctx.currentTime;
       out.gain.cancelScheduledValues(t);
       out.gain.setTargetAtTime(0, t, 0.25);
       setTimeout(() => {
-        for (const node of [snow, wind, ...gusts]) node?.stop();
+        for (const node of [snow, ...winds, ...gusts]) node.stop();
         out.disconnect();
       }, 1500);
     };
     out.gain.setTargetAtTime(1, ctx.currentTime, 0.6);
 
+    // The recording is played as it is, at full quality; the loop is made seamless here: each
+    // pass fades out over its last seconds while the next pass fades in from the start.
     const buffer = await this.load(WIND);
     if (!buffer || this.ambience !== handle) return;
-    wind = ctx.createBufferSource();
-    wind.buffer = buffer;
-    wind.loop = true;
-    wind.connect(windGain);
-    wind.start(0, Math.random() * buffer.duration); // start somewhere in the storm, not always at 0
+    const fade = Math.min(WIND_FADE, buffer.duration / 4);
+    const pass = (at: number, offset: number) => {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      const gain = ctx.createGain();
+      const end = at + buffer.duration - offset;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(1, at + fade);
+      gain.gain.setValueAtTime(1, end - fade);
+      gain.gain.linearRampToValueAtTime(0, end);
+      source.connect(gain).connect(windGain);
+      source.onended = () => winds.delete(source);
+      winds.add(source);
+      source.start(at, offset);
+      // Lay the next pass a second before this one starts fading out.
+      nextPass = setTimeout(() => pass(end - fade, 0), (end - fade - ctx.currentTime - 1) * 1000);
+    };
+    pass(ctx.currentTime, Math.random() * (buffer.duration - 2 * fade)); // start somewhere in the storm
   }
 
   private stopAmbience() {

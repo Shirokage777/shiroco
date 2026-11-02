@@ -1,8 +1,8 @@
 # Sound sources
 
-All sounds here are CC0 (public domain): free to use, no attribution required. They were
-re-encoded to lighter MP3s with `scripts/prepare-sounds.py`; the storm wind was also made to loop
-seamlessly.
+All sounds here are CC0 (public domain): free to use, no attribution required. The storm wind
+is the original file at full quality (the app crossfades its loop); the zombie growls were
+re-encoded to lighter MP3s with `scripts/prepare-sounds.py`.
 
 | File | Original | Source |
 |---|---|---|
