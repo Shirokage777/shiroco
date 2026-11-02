@@ -16,7 +16,8 @@
 
 /* Old, dirty paper. The note's text sits on the element; the paper itself is the
    ::before layer behind it, so the torn outline cuts the paper but never the text.
-   All dirt is generated noise (SVG feTurbulence), so there are no image files. */
+   The dirt is generated noise, rendered once to pictures (scripts/render-textures.mjs): Safari
+   redrew the live noise filters on every scroll, which made scrolling heavy on the iPhone. */
 .paper {
   position: relative;
   z-index: 0;
@@ -39,10 +40,10 @@
     linear-gradient(transparent 48.6%, #00000024 49.6%, #ffffff26 50.4%, transparent 51.4%),
     linear-gradient(transparent 24.4%, #00000014 24.9%, #ffffff1a 25.3%, transparent 25.8%),
     linear-gradient(transparent 74.4%, #00000014 74.9%, #ffffff1a 75.3%, transparent 75.8%),
-    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1' seed='4'/><feColorMatrix values='0 0 0 0 0.13 0 0 0 0 0.09 0 0 0 0 0.05 3 0 0 0 -1.95'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
-    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.7 0.018' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 0 0.12 1.1 0 0 0 -0.5'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
-    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='560' height='560'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='4' seed='7'/><feColorMatrix values='0 0 0 0 0.28 0 0 0 0 0.18 0 0 0 0 0.07 2.5 0 0 0 -0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
-    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.035' numOctaves='4' seed='2'/><feColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.25 0 0 0 0 0.15 1.9 0 0 0 -0.72'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>"),
+    url("/textures/paper-180.webp"),
+    url("/textures/paper-400.webp"),
+    url("/textures/paper-560.webp"),
+    url("/textures/paper-300.webp"),
     radial-gradient(ellipse 140px 90px at 0% 0%, #2e2010aa, transparent),
     radial-gradient(ellipse 160px 110px at 100% 100%, #2e2010b3, transparent),
     radial-gradient(ellipse 120px 80px at 100% 0%, #2e201077, transparent),

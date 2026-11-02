@@ -16,7 +16,9 @@ describe("card data stays private", () => {
   });
 
   it("has no image of the game in any file that would be committed", () => {
-    const images = repoFiles().filter((f) => /\.(png|jpe?g|webp|gif|heic)$/i.test(f));
+    // The only pictures allowed: our own textures, rendered from SVG by scripts/render-textures.mjs.
+    const ours = /^public\/(bunker-wall\.webp|textures\/paper-\d+\.webp)$/;
+    const images = repoFiles().filter((f) => /\.(png|jpe?g|webp|gif|heic)$/i.test(f) && !ours.test(f));
     expect(images).toEqual([]);
   });
 
