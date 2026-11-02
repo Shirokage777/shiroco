@@ -4,6 +4,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { choose, discardCurrent, drawCard, newGame, playable, reveal, type GameOptions, type GameState } from "@/lib/deck";
 import { hazardPeriod } from "@/lib/hazard";
 import type { Card } from "@/lib/types";
+import { narrationUrl, sound } from "./sound";
 import { Symbol, SymbolText } from "./symbol-text";
 import styles from "./table.module.css";
 
@@ -38,7 +39,12 @@ export default function Table() {
     return () => watch.disconnect();
   }, [game?.revealed]);
 
-  const change = (step: (g: GameState) => GameState) => setGame((g) => (g ? step(g) : g));
+  // Every move of the game cuts off the narrator; revealing a card or choosing an option then
+  // has it read the new text (when Narrate is switched on).
+  const change = (step: (g: GameState) => GameState) => {
+    sound.stopNarration();
+    setGame((g) => (g ? step(g) : g));
+  };
 
   if (failed) return <p className={styles.note}>The cards could not be loaded. Reload the page or sign in again.</p>;
   if (!cards) return <p className={styles.note}>Loading…</p>;
@@ -80,7 +86,7 @@ export default function Table() {
         <div className={styles.pin}>
           <div className={`${styles.ask} ${styles.paper}`} role="alertdialog" aria-label="Start a new game?">
             <span>Start a new game? The deck will be reshuffled.</span>
-            <button className={styles.primary} onClick={() => { setAskNewGame(false); setGame(null); }}>Yes, new game</button>
+            <button className={styles.primary} onClick={() => { sound.stopNarration(); setAskNewGame(false); setGame(null); }}>Yes, new game</button>
             <button className={`${styles.secondary} ${styles.cancel}`} onClick={() => setAskNewGame(false)}>Cancel</button>
           </div>
         </div>
@@ -115,7 +121,10 @@ export default function Table() {
 
             {!game.revealed && (
               <div className={styles.actions}>
-                <button className={styles.primary} onClick={() => change(reveal)}>Triggered</button>
+                <button className={styles.primary} onClick={() => {
+                  change(reveal);
+                  void sound.narrate(narrationUrl(card.id, "text"));
+                }}>Triggered</button>
                 <button className={styles.quiet} onClick={() => change(discardCurrent)}>Not Triggered</button>
               </div>
             )}
@@ -130,7 +139,11 @@ export default function Table() {
                     <div className={styles.hazardRule} aria-hidden="true" />
                     <button
                       className={game.chosen === null ? styles.option : game.chosen === i ? styles.chosen : styles.dimmed}
-                      onClick={() => setGame(choose(game, i))}
+                      onClick={() => {
+                        sound.stopNarration();
+                        if (game.chosen !== i) void sound.narrate(narrationUrl(card.id, i));
+                        setGame(choose(game, i));
+                      }}
                       aria-pressed={game.chosen === i}
                     >
                       <strong>{option.label}</strong>
