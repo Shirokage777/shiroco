@@ -1,4 +1,4 @@
-// The table's sound: card narration, the storm ambience and zombie growls, switched on and off
+// The table's sound: card narration, the wind ambience and zombie growls, switched on and off
 // in the switch box (sound-box.tsx). Everything plays through one Web Audio graph, so the three
 // mix: while the narrator speaks, ambience and growls duck down.
 //
@@ -15,8 +15,8 @@ const WIND = "/sounds/ambience-wind.mp3";
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
 // Ambience sits low, under the growls and the narrator (Sean, 2026-11-03: half again with the
 // gentler wind).
-const LEVEL = { wind: 0.14, snow: 0.018, zombies: 0.8, narration: 1 };
-const WIND_FADE = 3; // seconds the storm loop crossfades from its end into its start
+const LEVEL = { wind: 0.14, zombies: 0.8, narration: 1 };
+const WIND_FADE = 3; // seconds the wind loop crossfades from its end into its start
 const DUCK = 0.3; // ambience and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
 
@@ -172,7 +172,8 @@ class Sound {
     }
   }
 
-  // The storm outside: the recorded wind on a seamless loop, and fine snow hissing over it in gusts.
+  // The wind outside: the recording exactly as it is, only quieter, on a seamless loop. Nothing is
+  // added to it (Sean, 2026-11-03: a generated snow hiss spoiled it).
   private async startAmbience() {
     if (this.ambience || !this.ctx || !this.bus) return;
     const ctx = this.ctx;
@@ -181,34 +182,6 @@ class Sound {
     out.connect(this.bus.ambience);
     const handle = { stop: () => {} };
     this.ambience = handle;
-
-    // Snow: filtered noise, its loudness swaying with two slow, unrelated gust rhythms.
-    const noise = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate);
-    const data = noise.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    const snow = ctx.createBufferSource();
-    snow.buffer = noise;
-    snow.loop = true;
-    const high = ctx.createBiquadFilter();
-    high.type = "highpass";
-    high.frequency.value = 2800;
-    const band = ctx.createBiquadFilter();
-    band.type = "peaking";
-    band.frequency.value = 6500;
-    band.gain.value = 6;
-    const snowGain = ctx.createGain();
-    snowGain.gain.value = LEVEL.snow;
-    const gusts = [0.11, 0.29].map((rate, i) => {
-      const lfo = ctx.createOscillator();
-      lfo.frequency.value = rate;
-      const depth = ctx.createGain();
-      depth.gain.value = LEVEL.snow * (i === 0 ? 0.6 : 0.35);
-      lfo.connect(depth).connect(snowGain.gain);
-      lfo.start();
-      return lfo;
-    });
-    snow.connect(high).connect(band).connect(snowGain).connect(out);
-    snow.start();
 
     const windGain = ctx.createGain();
     windGain.gain.value = LEVEL.wind;
@@ -221,14 +194,14 @@ class Sound {
       out.gain.cancelScheduledValues(t);
       out.gain.setTargetAtTime(0, t, 0.25);
       setTimeout(() => {
-        for (const node of [snow, ...winds, ...gusts]) node.stop();
+        for (const node of winds) node.stop();
         out.disconnect();
       }, 1500);
     };
     out.gain.setTargetAtTime(1, ctx.currentTime, 0.6);
 
-    // The recording is played as it is, at full quality; the loop is made seamless here: each
-    // pass fades out over its last seconds while the next pass fades in from the start.
+    // The loop is made seamless here, not in the file: each pass fades out over its last seconds
+    // while the next pass fades in from the start.
     const buffer = await this.load(WIND);
     if (!buffer || this.ambience !== handle) return;
     const fade = Math.min(WIND_FADE, buffer.duration / 4);
@@ -248,7 +221,7 @@ class Sound {
       // Lay the next pass a second before this one starts fading out.
       nextPass = setTimeout(() => pass(end - fade, 0), (end - fade - ctx.currentTime - 1) * 1000);
     };
-    pass(ctx.currentTime, Math.random() * (buffer.duration - 2 * fade)); // start somewhere in the storm
+    pass(ctx.currentTime, 0);
   }
 
   private stopAmbience() {
