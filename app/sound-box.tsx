@@ -7,9 +7,10 @@ import styles from "./sound-box.module.css";
 const SWITCHES: [SoundSwitch, string][] = [
   ["narrate", "Narrate"],
   ["ambience", "Ambience"],
+  ["music", "Music"],
   ["zombies", "Zombies"],
 ];
-const ALL_OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
+const ALL_OFF: SoundSettings = { narrate: false, ambience: false, music: false, zombies: false };
 
 // A small steel switch box on the wall, like the breaker panel: a lever and a lamp per sound.
 // Lever up and lamp lit means on. Flips at once on tap.

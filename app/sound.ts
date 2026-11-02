@@ -1,22 +1,26 @@
-// The table's sound: card narration, the wind ambience and zombie growls, switched on and off
-// in the switch box (sound-box.tsx). Everything plays through one Web Audio graph, so the three
-// mix: while the narrator speaks, ambience and growls duck down.
+// The table's sound: card narration, the wind ambience, music and zombie growls, switched on and
+// off in the switch box (sound-box.tsx). Everything plays through one Web Audio graph, so they
+// mix: while the narrator speaks, ambience, music and growls duck down.
 //
 // Browsers only start sound after a tap, so the audio context is opened (or resumed) on the
 // first tap after the page loads; switches left on from last time start sounding then.
 
-export type SoundSwitch = "narrate" | "ambience" | "zombies";
+export type SoundSwitch = "narrate" | "ambience" | "music" | "zombies";
 export type SoundSettings = Record<SoundSwitch, boolean>;
 
 const STORE = "sound";
-const OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
+const OFF: SoundSettings = { narrate: false, ambience: false, music: false, zombies: false };
 
-const WIND = "/sounds/ambience-wind.mp3";
+// The looping clips, played exactly as the original files; only their volume is set.
+const LOOPS = {
+  ambience: { url: "/sounds/ambience-wind.mp3", level: 0.75 }, // a little under its own volume
+  music: { url: "/sounds/music-flags.mp3", level: 0.5 }, // under the narrator and the growls
+};
+type Loop = keyof typeof LOOPS;
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
-// Ambience a little under the clip's own volume, growls a little lower too (Sean, 2026-11-03).
-const LEVEL = { wind: 0.75, zombies: 0.6, narration: 1 };
-const WIND_FADE = 3; // seconds the wind loop crossfades from its end into its start
-const DUCK = 0.3; // ambience and growls while the narrator speaks
+const LEVEL = { zombies: 0.6, narration: 1 }; // growls a little lower (Sean, 2026-11-03)
+const LOOP_FADE = 3; // seconds a loop crossfades from its end into its start
+const DUCK = 0.3; // ambience, music and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
 
 export const narrationUrl = (cardId: string, clip: "text" | number) =>
@@ -26,7 +30,12 @@ export const narrationUrl = (cardId: string, clip: "text" | number) =>
 export function parseSettings(raw: string | null): SoundSettings {
   try {
     const value = JSON.parse(raw ?? "{}");
-    return { narrate: value.narrate === true, ambience: value.ambience === true, zombies: value.zombies === true };
+    return {
+      narrate: value.narrate === true,
+      ambience: value.ambience === true,
+      music: value.music === true,
+      zombies: value.zombies === true,
+    };
   } catch {
     return { ...OFF };
   }
@@ -39,11 +48,11 @@ class Sound {
   settings: SoundSettings = { ...OFF };
   private listeners = new Set<() => void>();
   private ctx: AudioContext | null = null;
-  private bus: { narration: GainNode; ambience: GainNode; zombies: GainNode } | null = null;
+  private bus: { narration: GainNode; ambience: GainNode; music: GainNode; zombies: GainNode } | null = null;
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
   private speaking: AudioBufferSourceNode | null = null;
   private speech = 0; // id of the latest narration, so a slow download never plays out of turn
-  private ambience: { stop: () => void } | null = null;
+  private loops: Partial<Record<Loop, { stop: () => void }>> = {};
   private growlTimer: ReturnType<typeof setTimeout> | null = null;
   private lastGrowl = -1;
   private growlRound = 0; // bumped when Zombies is switched off, so a growl still loading is dropped
@@ -58,7 +67,8 @@ class Sound {
     }
     const wake = () => {
       if (!this.open()) return;
-      if (this.settings.ambience) void this.startAmbience();
+      if (this.settings.ambience) void this.startLoop("ambience");
+      if (this.settings.music) void this.startLoop("music");
       if (this.settings.zombies) this.scheduleGrowl(true);
       window.removeEventListener("pointerdown", wake, true);
     };
@@ -81,9 +91,9 @@ class Sound {
     this.listeners.forEach((l) => l());
     if (!this.open()) return;
     if (which === "narrate" && !this.settings.narrate) this.stopNarration();
-    if (which === "ambience") {
-      if (this.settings.ambience) void this.startAmbience();
-      else this.stopAmbience();
+    if (which === "ambience" || which === "music") {
+      if (this.settings[which]) void this.startLoop(which);
+      else this.stopLoop(which);
     }
     if (which === "zombies") {
       if (this.settings.zombies) this.scheduleGrowl(true);
@@ -139,7 +149,7 @@ class Sound {
         gain.connect(this.ctx!.destination);
         return gain;
       };
-      this.bus = { narration: bus(LEVEL.narration), ambience: bus(1), zombies: bus(LEVEL.zombies) };
+      this.bus = { narration: bus(LEVEL.narration), ambience: bus(1), music: bus(1), zombies: bus(LEVEL.zombies) };
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
     return true;
@@ -166,6 +176,7 @@ class Sound {
     const t = this.ctx.currentTime;
     for (const [bus, full] of [
       [this.bus.ambience, 1],
+      [this.bus.music, 1],
       [this.bus.zombies, LEVEL.zombies],
     ] as const) {
       bus.gain.cancelScheduledValues(t);
@@ -173,21 +184,21 @@ class Sound {
     }
   }
 
-  // The wind outside: the recording exactly as it is, only its volume set, on a seamless loop. Nothing is
-  // added to it (Sean, 2026-11-03: a generated snow hiss spoiled it).
-  private async startAmbience() {
-    if (this.ambience || !this.ctx || !this.bus) return;
+  // A looping clip (the wind outside, the music): the recording exactly as it is, only its volume
+  // set, nothing added (Sean, 2026-11-03), on a seamless loop.
+  private async startLoop(which: Loop) {
+    if (this.loops[which] || !this.ctx || !this.bus) return;
     const ctx = this.ctx;
     const out = ctx.createGain();
     out.gain.value = 0;
-    out.connect(this.bus.ambience);
+    out.connect(this.bus[which]);
     const handle = { stop: () => {} };
-    this.ambience = handle;
+    this.loops[which] = handle;
 
-    const windGain = ctx.createGain();
-    windGain.gain.value = LEVEL.wind;
-    windGain.connect(out);
-    const winds = new Set<AudioBufferSourceNode>();
+    const level = ctx.createGain();
+    level.gain.value = LOOPS[which].level;
+    level.connect(out);
+    const passes = new Set<AudioBufferSourceNode>();
     let nextPass: ReturnType<typeof setTimeout> | null = null;
     handle.stop = () => {
       if (nextPass) clearTimeout(nextPass);
@@ -195,7 +206,7 @@ class Sound {
       out.gain.cancelScheduledValues(t);
       out.gain.setTargetAtTime(0, t, 0.25);
       setTimeout(() => {
-        for (const node of winds) node.stop();
+        for (const node of passes) node.stop();
         out.disconnect();
       }, 1500);
     };
@@ -203,9 +214,9 @@ class Sound {
 
     // The loop is made seamless here, not in the file: each pass fades out over its last seconds
     // while the next pass fades in from the start.
-    const buffer = await this.load(WIND);
-    if (!buffer || this.ambience !== handle) return;
-    const fade = Math.min(WIND_FADE, buffer.duration / 4);
+    const buffer = await this.load(LOOPS[which].url);
+    if (!buffer || this.loops[which] !== handle) return;
+    const fade = Math.min(LOOP_FADE, buffer.duration / 4);
     const pass = (at: number, offset: number) => {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -215,9 +226,9 @@ class Sound {
       gain.gain.linearRampToValueAtTime(1, at + fade);
       gain.gain.setValueAtTime(1, end - fade);
       gain.gain.linearRampToValueAtTime(0, end);
-      source.connect(gain).connect(windGain);
-      source.onended = () => winds.delete(source);
-      winds.add(source);
+      source.connect(gain).connect(level);
+      source.onended = () => passes.delete(source);
+      passes.add(source);
       source.start(at, offset);
       // Lay the next pass a second before this one starts fading out.
       nextPass = setTimeout(() => pass(end - fade, 0), (end - fade - ctx.currentTime - 1) * 1000);
@@ -225,9 +236,9 @@ class Sound {
     pass(ctx.currentTime, 0);
   }
 
-  private stopAmbience() {
-    this.ambience?.stop();
-    this.ambience = null;
+  private stopLoop(which: Loop) {
+    this.loops[which]?.stop();
+    delete this.loops[which];
   }
 
   // Now and then a growl, from a random direction and never the same one twice running. Right

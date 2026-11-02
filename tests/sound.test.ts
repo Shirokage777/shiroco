@@ -17,9 +17,15 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("sound switches", () => {
   it("remember only real on/off values, and start all off", () => {
-    expect(parseSettings(null)).toEqual({ narrate: false, ambience: false, zombies: false });
-    expect(parseSettings("not json")).toEqual({ narrate: false, ambience: false, zombies: false });
-    expect(parseSettings('{"narrate":true,"ambience":"yes","zombies":true}')).toEqual({ narrate: true, ambience: false, zombies: true });
+    const off = { narrate: false, ambience: false, music: false, zombies: false };
+    expect(parseSettings(null)).toEqual(off);
+    expect(parseSettings("not json")).toEqual(off);
+    expect(parseSettings('{"narrate":true,"ambience":"yes","music":true,"zombies":true}')).toEqual({
+      narrate: true,
+      ambience: false,
+      music: true,
+      zombies: true,
+    });
   });
 
   it("space the zombie growls between 14 and 40 seconds", () => {
@@ -27,9 +33,10 @@ describe("sound switches", () => {
     expect(growlDelay(0.999)).toBeLessThan(40);
   });
 
-  it("ships the ambience and growls the app plays", () => {
+  it("ships the ambience, music and growls the app plays", () => {
     const files = readdirSync("public/sounds");
     expect(files).toContain("ambience-wind.mp3");
+    expect(files).toContain("music-flags.mp3");
     for (let n = 1; n <= 7; n++) expect(files).toContain(`zombie-${n}.mp3`);
   });
 });
