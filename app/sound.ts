@@ -13,9 +13,8 @@ const OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
 
 const WIND = "/sounds/ambience-wind.mp3";
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
-// Ambience sits low, under the growls and the narrator (Sean, 2026-11-03: half again with the
-// gentler wind).
-const LEVEL = { wind: 0.14, zombies: 0.8, narration: 1 };
+// The ambience plays at the clip's own volume (Sean, 2026-11-03).
+const LEVEL = { wind: 1, zombies: 0.8, narration: 1 };
 const WIND_FADE = 3; // seconds the wind loop crossfades from its end into its start
 const DUCK = 0.3; // ambience and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
@@ -172,7 +171,7 @@ class Sound {
     }
   }
 
-  // The wind outside: the recording exactly as it is, only quieter, on a seamless loop. Nothing is
+  // The wind outside: the recording exactly as it is, at its own volume, on a seamless loop. Nothing is
   // added to it (Sean, 2026-11-03: a generated snow hiss spoiled it).
   private async startAmbience() {
     if (this.ambience || !this.ctx || !this.bus) return;
