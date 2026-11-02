@@ -94,6 +94,17 @@ describe("login and card endpoints", () => {
     expect(cookie).toMatch(/HttpOnly/i);
   });
 
+  it("sends the cookie over HTTPS only when the site runs on HTTPS (always on Vercel)", async () => {
+    const { POST } = await import("@/app/api/login/route");
+    const body = JSON.stringify({ name: "sean", password: PASSWORD });
+    const viaProxy = await POST(new Request("http://localhost/api/login", { method: "POST", body, headers: { "x-forwarded-proto": "https" } }));
+    expect(viaProxy.headers.get("set-cookie")).toMatch(/Secure/i);
+    const direct = await POST(new Request("https://shiroco.vercel.app/api/login", { method: "POST", body }));
+    expect(direct.headers.get("set-cookie")).toMatch(/Secure/i);
+    const local = await POST(new Request("http://localhost/api/login", { method: "POST", body }));
+    expect(local.headers.get("set-cookie")).not.toMatch(/Secure/i);
+  });
+
   it("refuses everyone when no accounts are set up", async () => {
     vi.stubEnv("APP_USERS", "");
     vi.stubEnv("APP_USERS_FILE", "does/not/exist");

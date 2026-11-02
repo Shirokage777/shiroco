@@ -45,3 +45,7 @@ next-env.d.ts
 /data/symbols/
 /data/audio/
 /data/music/
+
+# end-to-end test output (screens of real cards: never committed)
+/test-results/
+/playwright-report/

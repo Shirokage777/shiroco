@@ -22,9 +22,10 @@
   background-color: #4a4844;
   /* The bunker wall: grey concrete blocks, grimy at every joint and stained with water, with
      pipes, cables, a breaker panel, a junction box, a vent and a warning sign
-     (public/bunker-wall.svg, made by scripts/make-wall.mjs), plus fine pits at screen scale
+     (made as SVG by scripts/make-wall.mjs, rendered to a picture by scripts/render-textures.mjs:
+     Safari redrew its filters on every scroll), plus fine pits at screen scale
      and a vignette as if lit by one lamp (::before). */
-  background-image: var(--metal-pits), url("/bunker-wall.svg");
+  background-image: var(--metal-pits), url("/bunker-wall.webp");
   background-size: 220px 220px, 1600px 1400px;
   background-position: 0 0, center top;
   isolation: isolate;
@@ -99,6 +100,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 8px 14px;
+  min-height: 44px; /* comfortable to tap on a phone */
   border-radius: 4px;
   border: 1px solid #2c2b28;
   background-color: var(--steel);

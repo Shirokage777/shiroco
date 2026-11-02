@@ -18,6 +18,25 @@ describe("torn paper outline", () => {
     expect(points.some(([x]) => near(x, 0))).toBe(true);
   });
 
+  it("never crosses itself, so no stray triangles at the corners, whatever the note size", () => {
+    type P = [number, number];
+    const side = (p: P, q: P, r: P) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+    const cross = (a: P, b: P, c: P, d: P) => side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+    for (let w = 280; w <= 620; w += 37) {
+      for (const h of [80, 130, 220, 480, 900, 1400]) {
+        const p = tornOutline(w, h);
+        const crossings: string[] = [];
+        for (let i = 0; i < p.length; i++) {
+          for (let j = i + 2; j < p.length; j++) {
+            if (i === 0 && j === p.length - 1) continue; // neighbours round the wrap
+            if (cross(p[i], p[(i + 1) % p.length], p[j], p[(j + 1) % p.length])) crossings.push(`${p[i]} / ${p[j]}`);
+          }
+        }
+        expect(crossings, `${w}x${h}`).toEqual([]);
+      }
+    }
+  });
+
   it("is the same every time for the same size, so notes do not flicker", () => {
     expect(tornClipPath(320, 140)).toBe(tornClipPath(320, 140));
   });
