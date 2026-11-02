@@ -57,6 +57,7 @@ class Sound {
   private lastGrowl = -1;
   private growlRound = 0; // bumped when Zombies is switched off, so a growl still loading is dropped
   private growls = new Set<{ source: AudioBufferSourceNode; gain: GainNode }>();
+  private stopped = false; // signed out: silent for good on this page
 
   constructor() {
     if (typeof window === "undefined") return;
@@ -65,14 +66,35 @@ class Sound {
     } catch {
       // storage blocked: start with everything off
     }
-    const wake = () => {
-      if (!this.open()) return;
-      if (this.settings.ambience) void this.startLoop("ambience");
-      if (this.settings.music) void this.startLoop("music");
-      if (this.settings.zombies) this.scheduleGrowl(true);
-      window.removeEventListener("pointerdown", wake, true);
+    // Every tap makes sure the switched-on sounds are playing: the first one after the page loads,
+    // and the first one after the phone was locked if the browser kept sound held back.
+    window.addEventListener(
+      "pointerdown",
+      () => {
+        if (this.stopped || document.hidden || !this.open()) return;
+        if (this.settings.ambience) void this.startLoop("ambience");
+        if (this.settings.music) void this.startLoop("music");
+        if (this.settings.zombies) this.scheduleGrowl(true);
+      },
+      true,
+    );
+    // Locking the phone or leaving the app pauses all sound; coming back picks it up again.
+    const pause = () => {
+      if (document.hidden && this.ctx?.state === "running") void this.ctx.suspend();
+      else if (!document.hidden && !this.stopped && this.ctx?.state === "suspended") void this.ctx.resume().catch(() => {});
     };
-    window.addEventListener("pointerdown", wake, true);
+    document.addEventListener("visibilitychange", pause);
+    window.addEventListener("pagehide", () => void this.ctx?.suspend());
+  }
+
+  // Signing out: every sound stops at once and nothing starts again on this page.
+  stopAll() {
+    this.stopped = true;
+    this.stopNarration();
+    this.stopLoop("ambience");
+    this.stopLoop("music");
+    this.stopGrowls();
+    void this.ctx?.suspend();
   }
 
   subscribe = (listener: () => void) => {
@@ -89,7 +111,7 @@ class Sound {
       // not saved: the switch still works for this visit
     }
     this.listeners.forEach((l) => l());
-    if (!this.open()) return;
+    if (this.stopped || !this.open()) return;
     if (which === "narrate" && !this.settings.narrate) this.stopNarration();
     if (which === "ambience" || which === "music") {
       if (this.settings[which]) void this.startLoop(which);
@@ -104,7 +126,7 @@ class Sound {
   // Reads a clip aloud (if Narrate is on), cutting off whatever was being read.
   async narrate(url: string) {
     this.stopNarration();
-    if (!this.settings.narrate || !this.open()) return;
+    if (!this.settings.narrate || this.stopped || !this.open()) return;
     const id = ++this.speech;
     const buffer = await this.load(url);
     if (!buffer || id !== this.speech || !this.ctx || !this.bus) return;
@@ -249,6 +271,7 @@ class Sound {
     this.growlTimer = setTimeout(async () => {
       this.growlTimer = null;
       if (!this.settings.zombies || !this.ctx || !this.bus) return;
+      if (this.ctx.state !== "running") return this.scheduleGrowl(); // paused: no growls piling up for later
       let pick = Math.floor(Math.random() * ZOMBIES.length);
       if (pick === this.lastGrowl) pick = (pick + 1) % ZOMBIES.length;
       this.lastGrowl = pick;

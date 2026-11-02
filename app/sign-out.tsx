@@ -1,18 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { sound } from "./sound";
 import table from "./table.module.css";
 
 // Asks first, on a note like the new-game question: a misclick should never end the session.
 // The note appears and disappears at once, whichever answer is given.
 export default function SignOut() {
-  const router = useRouter();
   const [asking, setAsking] = useState(false);
 
+  // All sound stops at once; then a full page load to the login, so nothing of the game (and no
+  // sound) lives on in the page.
   async function signOut() {
+    sound.stopAll();
     await fetch("/api/logout", { method: "POST" });
-    router.replace("/login");
+    window.location.replace("/login");
   }
 
   if (!asking) return <button onClick={() => setAsking(true)}>Sign out</button>;

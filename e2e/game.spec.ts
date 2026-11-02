@@ -150,3 +150,43 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) await press(page.getByRole("switch", { name }));
   expect(errors).toEqual([]);
 });
+
+// The browser's audio engine is watched through every AudioContext the page creates.
+test("sound pauses when the phone locks, comes back, and stops on sign out", async ({ page }) => {
+  test.skip(!(await page.evaluate(() => "AudioContext" in window)), "this browser build has no Web Audio");
+  await page.addInitScript(() => {
+    const Native = window.AudioContext;
+    const made: AudioContext[] = [];
+    (window as unknown as { __audio: AudioContext[] }).__audio = made;
+    window.AudioContext = class extends Native {
+      constructor(options?: AudioContextOptions) {
+        super(options);
+        made.push(this);
+      }
+    };
+  });
+  const state = () => page.evaluate(() => (window as unknown as { __audio: AudioContext[] }).__audio.map((c) => c.state).join());
+  const setHidden = (hidden: boolean) =>
+    page.evaluate((h) => {
+      Object.defineProperty(document, "hidden", { value: h, configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }, hidden);
+
+  await login(page);
+  await press(page.getByRole("switch", { name: "Ambience" }));
+  await expect.poll(state).toBe("running");
+
+  await setHidden(true); // phone locked
+  await expect.poll(state).toBe("suspended");
+  await setHidden(false); // unlocked
+  await expect.poll(state).toBe("running");
+
+  await press(page.getByRole("button", { name: "Sign out", exact: true }));
+  await press(page.getByRole("button", { name: "Yes, sign out" }));
+  await expect(page).toHaveURL(/\/login$/);
+  expect(await state()).toBe(""); // a fresh page: no audio engine left playing
+
+  await page.goto("/");
+  await login(page);
+  await press(page.getByRole("switch", { name: "Ambience" })); // leave it off for the next run
+});

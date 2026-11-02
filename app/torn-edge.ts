@@ -46,17 +46,30 @@ export function tornOutline(w: number, h: number, seed = 1): [number, number][] 
     return Math.max(0, Math.min(DEPTH, (smooth - 0.18) * DEPTH * 1.5 + (rand() - 0.5) * 1.6));
   };
 
-  const points: [number, number][] = [];
+  // Walk round the four edges (top, right, bottom, left), each point torn inward by its depth.
   const steps = Math.max(1, Math.round(perimeter / STEP));
-  for (let k = 0; k < steps; k++) {
+  const walk = Array.from({ length: steps }, (_, k) => {
     const t = (k / steps) * perimeter;
-    const d = depth(t);
-    if (t < w) points.push([t, d]);
-    else if (t < w + h) points.push([w - d, t - w]);
-    else if (t < 2 * w + h) points.push([w - (t - w - h), h - d]);
-    else points.push([d, h - (t - 2 * w - h)]);
-  }
-  return points;
+    const edge = t < w ? 0 : t < w + h ? 1 : t < 2 * w + h ? 2 : 3;
+    return { edge, along: t - [0, w, w + h, 2 * w + h][edge], d: depth(t) };
+  });
+  // At a corner, an edge must stay clear of its neighbour's tear: points closer to the corner than
+  // the neighbouring edge is torn anywhere near it are left out, so the corner is one straight cut
+  // from edge to edge. Otherwise the outline crosses itself and leaves stray triangles there.
+  const length = [w, h, w, h];
+  const NEAR = DEPTH + STEP;
+  const deepest = (e: number, from: number, to: number) =>
+    Math.max(0, ...walk.filter((p) => p.edge === e && p.along >= from && p.along <= to).map((p) => p.d));
+  const atStart = [0, 1, 2, 3].map((e) => deepest(e, 0, NEAR));
+  const atEnd = [0, 1, 2, 3].map((e) => deepest(e, length[e] - NEAR, length[e]));
+  return walk
+    .filter(({ edge, along }) => along >= atEnd[(edge + 3) % 4] && along <= length[edge] - atStart[(edge + 1) % 4])
+    .map(({ edge, along: s, d }): [number, number] => {
+      if (edge === 0) return [s, d];
+      if (edge === 1) return [w - d, s];
+      if (edge === 2) return [w - s, h - d];
+      return [d, h - s];
+    });
 }
 
 export function tornClipPath(w: number, h: number, seed = 1): string {
