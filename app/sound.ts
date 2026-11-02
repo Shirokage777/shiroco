@@ -13,7 +13,8 @@ const OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
 
 const WIND = "/sounds/storm-wind.mp3";
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
-const LEVEL = { wind: 0.55, snow: 0.07, zombies: 0.7, narration: 1 };
+// Ambience sits low, under the growls and the narrator (Sean, 2026-11-03).
+const LEVEL = { wind: 0.28, snow: 0.035, zombies: 0.8, narration: 1 };
 const WIND_FADE = 3; // seconds the storm loop crossfades from its end into its start
 const DUCK = 0.3; // ambience and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
