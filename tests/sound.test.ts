@@ -17,9 +17,15 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("sound switches", () => {
   it("remember only real on/off values, and start all off", () => {
-    expect(parseSettings(null)).toEqual({ narrate: false, ambience: false, zombies: false });
-    expect(parseSettings("not json")).toEqual({ narrate: false, ambience: false, zombies: false });
-    expect(parseSettings('{"narrate":true,"ambience":"yes","zombies":true}')).toEqual({ narrate: true, ambience: false, zombies: true });
+    const off = { narrate: false, ambience: false, music: false, zombies: false };
+    expect(parseSettings(null)).toEqual(off);
+    expect(parseSettings("not json")).toEqual(off);
+    expect(parseSettings('{"narrate":true,"ambience":"yes","music":true,"zombies":true}')).toEqual({
+      narrate: true,
+      ambience: false,
+      music: true,
+      zombies: true,
+    });
   });
 
   it("space the zombie growls between 14 and 40 seconds", () => {
@@ -56,6 +62,28 @@ describe("narration", () => {
     expect((await ask("base-001", "option-x")).status).toBe(404);
     if (existsSync("data/audio/base-001/text.mp3")) {
       const res = await ask("base-001", "text");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("audio/mpeg");
+      expect(res.headers.get("cache-control")).toMatch(/private/);
+    }
+  });
+});
+
+describe("private music", () => {
+  it("is kept out of git and the public folder", () => {
+    expect(() => execSync("git check-ignore -q data/music/zombie-music.mp3")).not.toThrow();
+    expect(readdirSync("public/sounds").filter((f) => /music/.test(f))).toEqual([]);
+  });
+
+  it("is served only with a valid session, and only for real names", async () => {
+    const { GET } = await import("@/app/api/music/[name]/route");
+    const ask = (name: string) => GET(new Request(`http://localhost/api/music/${name}`), { params: Promise.resolve({ name }) });
+    expect((await ask("zombie-music")).status).toBe(401);
+    cookieValue = await createSession("sean", SECRET);
+    expect((await ask("..%2F..%2Fcards")).status).toBe(404);
+    expect((await ask("no-such-track")).status).toBe(404);
+    if (existsSync("data/music/zombie-music.mp3")) {
+      const res = await ask("zombie-music");
       expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toBe("audio/mpeg");
       expect(res.headers.get("cache-control")).toMatch(/private/);

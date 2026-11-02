@@ -1,9 +1,9 @@
-// Puts the card deck at data/cards.json, the printed symbols in data/symbols/ and the card narration
-// in data/audio/<card id>/<clip>.mp3 before dev and build.
-// Sources, in order: CARDS_LOCAL_PATH (a file on this computer; symbols and narration from the
-// "symbols" and "audio" folders next to its folder), CARDS_REPO + CARDS_REPO_TOKEN (a private GitHub
-// repo), or the example deck (no symbols, no narration: the app then shows symbol names as words
-// and stays silent).
+// Puts the card deck at data/cards.json, the printed symbols in data/symbols/, the card narration
+// in data/audio/<card id>/<clip>.mp3 and the private music in data/music/ before dev and build.
+// Sources, in order: CARDS_LOCAL_PATH (a file on this computer; symbols, narration and music from
+// the "symbols", "audio" and "music" folders next to its folder), CARDS_REPO + CARDS_REPO_TOKEN (a
+// private GitHub repo), or the example deck (no symbols, narration or music: the app then shows
+// symbol names as words and stays silent).
 // On Vercel the private repo is required, so a deploy never ships example cards by mistake.
 import { copyFile, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 const OUT = "data/cards.json";
 const SYMBOLS = "data/symbols";
 const AUDIO = "data/audio";
+const MUSIC = "data/music";
 const EXAMPLE = "data/example-cards.json";
 const {
   CARDS_LOCAL_PATH,
@@ -19,9 +20,11 @@ const {
   CARDS_REPO_PATH = "cards/base.json",
   CARDS_SYMBOLS_PATH = "symbols",
   CARDS_AUDIO_PATH = "audio",
+  CARDS_MUSIC_PATH = "music",
   VERCEL,
 } = process.env;
 const SYMBOL_FILE = /^[a-z0-9-]+\.png$/;
+const MUSIC_FILE = /^[a-z0-9-]+\.mp3$/;
 const CARD_DIR = /^[a-z0-9-]+$/;
 const CLIP_FILE = /^(text|option-\d)\.mp3$/;
 
@@ -45,15 +48,16 @@ async function fromRepo() {
   return res.text();
 }
 
-async function symbolsFromRepo() {
-  const res = await github(CARDS_SYMBOLS_PATH, "application/vnd.github+json");
+// The files of one folder of the repo (symbols, music) whose names match.
+async function folderFromRepo(path, name, out) {
+  const res = await github(path, "application/vnd.github+json");
   if (res.status === 404) return 0;
-  if (!res.ok) throw new Error(`GitHub answered ${res.status} for ${CARDS_REPO}/${CARDS_SYMBOLS_PATH}`);
-  const files = (await res.json()).filter((f) => f.type === "file" && SYMBOL_FILE.test(f.name));
+  if (!res.ok) throw new Error(`GitHub answered ${res.status} for ${CARDS_REPO}/${path}`);
+  const files = (await res.json()).filter((f) => f.type === "file" && name.test(f.name));
   for (const f of files) {
-    const img = await github(f.path, "application/vnd.github.raw+json");
-    if (!img.ok) throw new Error(`GitHub answered ${img.status} for ${f.path}`);
-    await writeFile(join(SYMBOLS, f.name), Buffer.from(await img.arrayBuffer()));
+    const file = await github(f.path, "application/vnd.github.raw+json");
+    if (!file.ok) throw new Error(`GitHub answered ${file.status} for ${f.path}`);
+    await writeFile(join(out, f.name), Buffer.from(await file.arrayBuffer()));
   }
   return files.length;
 }
@@ -95,30 +99,32 @@ async function audioFromFolder(folder) {
   return count;
 }
 
-async function symbolsFromFolder(folder) {
-  const names = (await readdir(folder).catch(() => [])).filter((n) => SYMBOL_FILE.test(n));
-  for (const n of names) await copyFile(join(folder, n), join(SYMBOLS, n));
+async function folderFromDisk(folder, name, out) {
+  const names = (await readdir(folder).catch(() => [])).filter((n) => name.test(n));
+  for (const n of names) await copyFile(join(folder, n), join(out, n));
   return names.length;
 }
 
-await rm(SYMBOLS, { recursive: true, force: true });
-await mkdir(SYMBOLS, { recursive: true });
-await rm(AUDIO, { recursive: true, force: true });
-await mkdir(AUDIO, { recursive: true });
+for (const dir of [SYMBOLS, AUDIO, MUSIC]) {
+  await rm(dir, { recursive: true, force: true });
+  await mkdir(dir, { recursive: true });
+}
 
 if (CARDS_LOCAL_PATH) {
   const deck = check(await readFile(CARDS_LOCAL_PATH, "utf8"), CARDS_LOCAL_PATH);
   await writeFile(OUT, JSON.stringify(deck));
   const root = join(dirname(CARDS_LOCAL_PATH), "..");
-  const symbols = await symbolsFromFolder(join(root, CARDS_SYMBOLS_PATH));
+  const symbols = await folderFromDisk(join(root, CARDS_SYMBOLS_PATH), SYMBOL_FILE, SYMBOLS);
   const clips = await audioFromFolder(join(root, CARDS_AUDIO_PATH));
-  console.log(`cards: ${deck.cards.length} from local file, ${symbols} symbols, ${clips} narration clips`);
+  const music = await folderFromDisk(join(root, CARDS_MUSIC_PATH), MUSIC_FILE, MUSIC);
+  console.log(`cards: ${deck.cards.length} from local file, ${symbols} symbols, ${clips} narration clips, ${music} music`);
 } else if (CARDS_REPO && CARDS_REPO_TOKEN) {
   const deck = check(await fromRepo(), CARDS_REPO);
   await writeFile(OUT, JSON.stringify(deck));
-  const symbols = await symbolsFromRepo();
+  const symbols = await folderFromRepo(CARDS_SYMBOLS_PATH, SYMBOL_FILE, SYMBOLS);
   const clips = await audioFromRepo();
-  console.log(`cards: ${deck.cards.length} from private repo, ${symbols} symbols, ${clips} narration clips`);
+  const music = await folderFromRepo(CARDS_MUSIC_PATH, MUSIC_FILE, MUSIC);
+  console.log(`cards: ${deck.cards.length} from private repo, ${symbols} symbols, ${clips} narration clips, ${music} music`);
 } else if (VERCEL) {
   console.error("CARDS_REPO and CARDS_REPO_TOKEN must be set on Vercel.");
   process.exit(1);

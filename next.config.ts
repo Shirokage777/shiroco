@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/symbols/[name]": ["./data/symbols/**"],
     "/api/narration/[card]/[clip]": ["./data/audio/**"],
+    "/api/music/[name]": ["./data/music/**"],
   },
   async headers() {
     return [{ source: "/:path*", headers: [robotsHeader] }];
