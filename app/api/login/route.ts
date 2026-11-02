@@ -16,10 +16,13 @@ export async function POST(request: Request) {
     return NextResponse.json({}, { status: 401 });
   }
 
+  // Secure (HTTPS only) whenever the request came over HTTPS, as every request on Vercel does.
+  // Plain http only happens on this computer (local tests), where Safari would drop a Secure cookie.
+  const https = new URL(request.url).protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
   const res = NextResponse.json({});
   res.cookies.set(SESSION_COOKIE, await createSession(name, secret), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: https,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DAYS * 86_400,

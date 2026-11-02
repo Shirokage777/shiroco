@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "npm run cards && vitest run",
     "cards": "node --env-file-if-exists=.env.local scripts/fetch-cards.mjs",
-    "add-user": "node scripts/add-user.mjs"
+    "add-user": "node scripts/add-user.mjs",
+    "test:e2e": "npm run cards && next build --turbopack && playwright test"
   },
   "dependencies": {
     "@fontsource/courier-prime": "^5.3.0",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.64.1",
     "@types/node": "22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",

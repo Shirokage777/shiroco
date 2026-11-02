@@ -63,3 +63,15 @@ It asks for the password twice (hidden) and writes the hash to `~/.config/crossr
 ```bash
 npm test
 ```
+
+Unit tests: run on every build, so a failing test stops a deploy.
+
+```bash
+npx playwright install chromium webkit
+npm run test:e2e
+```
+
+End-to-end tests (`e2e/`): a whole game in Chrome's and Safari's engines at laptop, iPad and phone
+sizes, checking that nothing scrolls sideways and every button is big enough to tap. They need
+real browsers, so they run on your own computer before you push (Vercel's build has no browsers).
+They start their own server with a test-only account; no real login is needed.
