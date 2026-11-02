@@ -11,10 +11,11 @@ export type SoundSettings = Record<SoundSwitch, boolean>;
 const STORE = "sound";
 const OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
 
-const WIND = "/sounds/storm-wind.mp3";
+const WIND = "/sounds/ambience-wind.mp3";
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
-// Ambience sits low, under the growls and the narrator (Sean, 2026-11-03).
-const LEVEL = { wind: 0.28, snow: 0.035, zombies: 0.8, narration: 1 };
+// Ambience sits low, under the growls and the narrator (Sean, 2026-11-03: half again with the
+// gentler wind).
+const LEVEL = { wind: 0.14, snow: 0.018, zombies: 0.8, narration: 1 };
 const WIND_FADE = 3; // seconds the storm loop crossfades from its end into its start
 const DUCK = 0.3; // ambience and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
@@ -171,7 +172,7 @@ class Sound {
     }
   }
 
-  // The storm: the recorded wind on a seamless loop, and fine snow hissing over it in gusts.
+  // The storm outside: the recorded wind on a seamless loop, and fine snow hissing over it in gusts.
   private async startAmbience() {
     if (this.ambience || !this.ctx || !this.bus) return;
     const ctx = this.ctx;

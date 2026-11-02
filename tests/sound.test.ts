@@ -29,7 +29,7 @@ describe("sound switches", () => {
 
   it("ships the ambience and growls the app plays", () => {
     const files = readdirSync("public/sounds");
-    expect(files).toContain("storm-wind.mp3");
+    expect(files).toContain("ambience-wind.mp3");
     for (let n = 1; n <= 7; n++) expect(files).toContain(`zombie-${n}.mp3`);
   });
 });

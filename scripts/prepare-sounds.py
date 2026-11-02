@@ -17,7 +17,7 @@ import soundfile as sf
 OUT = Path(__file__).resolve().parent.parent / "public" / "sounds"
 
 # BigSoundBank id -> file name in public/sounds
-WIND = {"0153": "storm-wind.mp3"}
+WIND = {"0147": "ambience-wind.mp3"}
 ZOMBIES = {f"{2105 + n}": f"zombie-{n}.mp3" for n in range(1, 8)}
 
 
@@ -30,7 +30,7 @@ def main() -> None:
     src = Path(sys.argv[1])
     OUT.mkdir(parents=True, exist_ok=True)
     for sid, name in WIND.items():
-        # Copied as it is: re-encoding lost the fine detail of the howling wind (Sean, 2026-11-03).
+        # Copied as it is: re-encoding loses the fine detail of the wind (Sean, 2026-11-03).
         # The player makes the loop seamless (app/sound.ts).
         shutil.copyfile(src / f"{sid}.mp3", OUT / name)
         print(f"{name}: original, {(OUT / name).stat().st_size // 1024} KB")
