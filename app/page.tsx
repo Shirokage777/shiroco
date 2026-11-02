@@ -5,6 +5,7 @@ import "@fontsource/courier-prime/latin-400-italic.css";
 import "@fontsource/courier-prime/latin-700.css";
 import "@fontsource/courier-prime/latin-700-italic.css";
 import SignOut from "./sign-out";
+import SoundBox from "./sound-box";
 import Table from "./table";
 import TornEdges from "./torn-edges";
 import styles from "./page.module.css";
@@ -20,6 +21,9 @@ export default function Home() {
       <TornEdges />
       <div className={styles.hazard} aria-hidden="true" />
       <main className={styles.page}>
+        <div className={styles.soundRow}>
+          <SoundBox />
+        </div>
         <Table />
       </main>
       <footer className={styles.footer}>

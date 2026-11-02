@@ -1,0 +1,107 @@
+/* The switch box: painted steel like the breaker panel on the wall, worn with grime patches,
+   pits and scratches, bevelled edges and a shadow, so it sits on the wall, not in it. */
+.box {
+  display: grid;
+  gap: 6px;
+  padding: 7px 10px 8px;
+  border-radius: 3px;
+  background-color: #53554f;
+  background-image:
+    var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark), var(--metal-patches-dark),
+    linear-gradient(160deg, #ffffff12, transparent 55%, #0000002e);
+  background-size: 300px 90px, 160px 160px, 260px 260px, 410px 410px, 100% 100%;
+  background-position: 0 0, 0 0, 0 0, 90px 50px, 0 0;
+  box-shadow: inset 0 1px 0 #ffffff2e, inset 1px 0 0 #ffffff1a, inset 0 -1.5px 0 #0000008c, inset -1.4px 0 0 #00000073,
+    4px 7px 10px #000000a6;
+}
+
+.plate {
+  justify-self: start;
+  padding: 1px 6px;
+  font-family: var(--font-stamp), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #1a1917;
+  background: #cfc8b2b0;
+  border-radius: 1px;
+}
+
+.switches {
+  display: flex;
+  gap: 4px;
+}
+
+/* One switch: a toggle lever in its slot, a lamp under it, a stamped label. */
+.switch {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 60px;
+  padding: 2px 2px 0;
+  background: none;
+  border: 0;
+  color: #e4dfd2;
+  cursor: pointer;
+  font: inherit;
+}
+
+.slot {
+  position: relative;
+  width: 16px;
+  height: 30px;
+  border-radius: 3px;
+  background: #151412;
+  box-shadow: inset 0 2px 3px #000, 0 1px 0 #ffffff26;
+}
+
+/* The lever: down (off) or up (on), no movement in between. */
+.lever {
+  position: absolute;
+  left: 3px;
+  bottom: 2px;
+  width: 10px;
+  height: 15px;
+  border-radius: 2px;
+  background-color: #8f8d87;
+  background-image: var(--metal-scuffs), linear-gradient(180deg, #b4b0a6, #5b5954);
+  box-shadow: 0 2px 2px #000000b0, inset 0 1px 0 #ffffff59;
+}
+
+.on .lever {
+  bottom: auto;
+  top: 2px;
+  background-image: var(--metal-scuffs), linear-gradient(0deg, #b4b0a6, #5b5954);
+  box-shadow: 0 -1px 2px #000000b0, inset 0 -1px 0 #ffffff40;
+}
+
+/* The lamp: dark glass when off, warm amber when on. */
+.lamp {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4a463e, #1b1a17);
+  box-shadow: 0 0 0 1.5px #1a1917, inset 0 1px 1px #ffffff1f;
+}
+
+.on .lamp {
+  background: radial-gradient(circle at 35% 35%, #ffe3a1, #f0a520 55%, #a8620c);
+  box-shadow: 0 0 0 1.5px #1a1917, 0 0 8px 2px #f0a52099;
+}
+
+.label {
+  font-family: var(--font-stamp), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 -1px 0 #00000099;
+}
+
+.switch:active .slot {
+  transform: translateY(1px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--hazard);
+  outline-offset: 2px;
+}

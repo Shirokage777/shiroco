@@ -77,6 +77,14 @@
   padding: 24px 16px;
 }
 
+/* The sound switch box hangs at the top right, above the deck count and New game. */
+.soundRow {
+  display: flex;
+  justify-content: flex-end;
+  width: min(600px, 100%);
+  margin-bottom: 14px;
+}
+
 .footer {
   display: grid;
   justify-items: center;
