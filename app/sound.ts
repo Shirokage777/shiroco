@@ -13,8 +13,8 @@ const OFF: SoundSettings = { narrate: false, ambience: false, zombies: false };
 
 const WIND = "/sounds/ambience-wind.mp3";
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
-// The ambience plays at the clip's own volume (Sean, 2026-11-03).
-const LEVEL = { wind: 1, zombies: 0.8, narration: 1 };
+// Ambience a little under the clip's own volume, growls a little lower too (Sean, 2026-11-03).
+const LEVEL = { wind: 0.75, zombies: 0.6, narration: 1 };
 const WIND_FADE = 3; // seconds the wind loop crossfades from its end into its start
 const DUCK = 0.3; // ambience and growls while the narrator speaks
 const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
@@ -46,6 +46,8 @@ class Sound {
   private ambience: { stop: () => void } | null = null;
   private growlTimer: ReturnType<typeof setTimeout> | null = null;
   private lastGrowl = -1;
+  private growlRound = 0; // bumped when Zombies is switched off, so a growl still loading is dropped
+  private growls = new Set<{ source: AudioBufferSourceNode; gain: GainNode }>();
 
   constructor() {
     if (typeof window === "undefined") return;
@@ -171,7 +173,7 @@ class Sound {
     }
   }
 
-  // The wind outside: the recording exactly as it is, at its own volume, on a seamless loop. Nothing is
+  // The wind outside: the recording exactly as it is, only its volume set, on a seamless loop. Nothing is
   // added to it (Sean, 2026-11-03: a generated snow hiss spoiled it).
   private async startAmbience() {
     if (this.ambience || !this.ctx || !this.bus) return;
@@ -239,8 +241,10 @@ class Sound {
       let pick = Math.floor(Math.random() * ZOMBIES.length);
       if (pick === this.lastGrowl) pick = (pick + 1) % ZOMBIES.length;
       this.lastGrowl = pick;
+      const round = this.growlRound;
       const buffer = await this.load(ZOMBIES[pick]);
-      if (buffer && this.settings.zombies) {
+      if (round !== this.growlRound) return; // switched off (or off and on) while it loaded
+      if (buffer) {
         const source = this.ctx.createBufferSource();
         source.buffer = buffer;
         source.playbackRate.value = 0.9 + Math.random() * 0.15;
@@ -249,15 +253,28 @@ class Sound {
         const pan = this.ctx.createStereoPanner();
         pan.pan.value = Math.random() * 1.6 - 0.8;
         source.connect(gain).connect(pan).connect(this.bus.zombies);
+        const growl = { source, gain };
+        this.growls.add(growl);
+        source.onended = () => this.growls.delete(growl);
         source.start();
       }
       this.scheduleGrowl();
     }, delay * 1000);
   }
 
+  // Switching Zombies off silences them at once: the growl playing is cut (with a fade too
+  // short to hear, so it does not click) and no further one comes.
   private stopGrowls() {
     if (this.growlTimer) clearTimeout(this.growlTimer);
     this.growlTimer = null;
+    this.growlRound++;
+    const t = this.ctx?.currentTime ?? 0;
+    for (const { source, gain } of this.growls) {
+      gain.gain.cancelScheduledValues(t);
+      gain.gain.setTargetAtTime(0, t, 0.015);
+      source.stop(t + 0.08);
+    }
+    this.growls.clear();
   }
 }
 
