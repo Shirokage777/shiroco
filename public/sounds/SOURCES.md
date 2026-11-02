@@ -1,13 +1,12 @@
 # Sound sources
 
 All sounds here are CC0 (public domain): free to use, no attribution required. The ambience wind
-and the music are the original files at full quality (the app crossfades their loops); the zombie growls were
+is the original file at full quality (the app crossfades its loop); the zombie growls were
 re-encoded to lighter MP3s with `scripts/prepare-sounds.py`.
 
 | File | Original | Source |
 |---|---|---|
 | ambience-wind.mp3 | Whistling of the Wind #1 (BigSoundBank #0147) | https://bigsoundbank.com/whistling-of-the-wind-1-s0147.html |
-| music-flags.mp3 | Flags, from Free Music Pack by Alexander Ehlers (original file) | https://opengameart.org/content/free-music-pack |
 | zombie-1.mp3 | Zombie #1 (BigSoundBank #2106) | https://bigsoundbank.com/zombie-1-s2106.html |
 | zombie-2.mp3 | Zombie #2 (BigSoundBank #2107) | https://bigsoundbank.com/zombie-2-s2107.html |
 | zombie-3.mp3 | Zombie #3 (BigSoundBank #2108) | https://bigsoundbank.com/zombie-3-s2108.html |

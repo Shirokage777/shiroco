@@ -14,7 +14,7 @@ const OFF: SoundSettings = { narrate: false, ambience: false, music: false, zomb
 // The looping clips, played exactly as the original files; only their volume is set.
 const LOOPS = {
   ambience: { url: "/sounds/ambience-wind.mp3", level: 0.75 }, // a little under its own volume
-  music: { url: "/sounds/music-flags.mp3", level: 0.5 }, // under the narrator and the growls
+  music: { url: "/api/music/zombie-music", level: 0.5 }, // Sean's own track, private (login only)
 };
 type Loop = keyof typeof LOOPS;
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);

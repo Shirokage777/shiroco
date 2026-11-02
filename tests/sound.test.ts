@@ -33,10 +33,9 @@ describe("sound switches", () => {
     expect(growlDelay(0.999)).toBeLessThan(40);
   });
 
-  it("ships the ambience, music and growls the app plays", () => {
+  it("ships the ambience and growls the app plays", () => {
     const files = readdirSync("public/sounds");
     expect(files).toContain("ambience-wind.mp3");
-    expect(files).toContain("music-flags.mp3");
     for (let n = 1; n <= 7; n++) expect(files).toContain(`zombie-${n}.mp3`);
   });
 });
@@ -63,6 +62,28 @@ describe("narration", () => {
     expect((await ask("base-001", "option-x")).status).toBe(404);
     if (existsSync("data/audio/base-001/text.mp3")) {
       const res = await ask("base-001", "text");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("audio/mpeg");
+      expect(res.headers.get("cache-control")).toMatch(/private/);
+    }
+  });
+});
+
+describe("private music", () => {
+  it("is kept out of git and the public folder", () => {
+    expect(() => execSync("git check-ignore -q data/music/zombie-music.mp3")).not.toThrow();
+    expect(readdirSync("public/sounds").filter((f) => /music/.test(f))).toEqual([]);
+  });
+
+  it("is served only with a valid session, and only for real names", async () => {
+    const { GET } = await import("@/app/api/music/[name]/route");
+    const ask = (name: string) => GET(new Request(`http://localhost/api/music/${name}`), { params: Promise.resolve({ name }) });
+    expect((await ask("zombie-music")).status).toBe(401);
+    cookieValue = await createSession("sean", SECRET);
+    expect((await ask("..%2F..%2Fcards")).status).toBe(404);
+    expect((await ask("no-such-track")).status).toBe(404);
+    if (existsSync("data/music/zombie-music.mp3")) {
+      const res = await ask("zombie-music");
       expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toBe("audio/mpeg");
       expect(res.headers.get("cache-control")).toMatch(/private/);
