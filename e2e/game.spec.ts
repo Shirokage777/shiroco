@@ -122,17 +122,29 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   const errors = watchErrors(page);
   await login(page);
   const levers = page.getByRole("switch");
-  await expect(levers).toHaveCount(4);
+  await expect(levers).toHaveCount(5);
+  const lever = (name: string) => page.getByRole("switch", { name, exact: true });
+
+  // Music and Intense music are linked: one switches the other off.
+  await press(lever("Music"));
+  await press(lever("Intense music"));
+  await expect(lever("Intense music")).toHaveAttribute("aria-checked", "true");
+  await expect(lever("Music")).toHaveAttribute("aria-checked", "false");
+  await press(lever("Music"));
+  await expect(lever("Music")).toHaveAttribute("aria-checked", "true");
+  await expect(lever("Intense music")).toHaveAttribute("aria-checked", "false");
+  await press(lever("Music"));
+
   for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) {
-    const lever = page.getByRole("switch", { name });
-    await expect(lever).toHaveAttribute("aria-checked", "false");
-    await press(lever);
-    await expect(lever).toHaveAttribute("aria-checked", "true");
+    await expect(lever(name)).toHaveAttribute("aria-checked", "false");
+    await press(lever(name));
+    await expect(lever(name)).toHaveAttribute("aria-checked", "true");
   }
   await page.reload();
   for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) {
-    await expect(page.getByRole("switch", { name })).toHaveAttribute("aria-checked", "true");
+    await expect(lever(name)).toHaveAttribute("aria-checked", "true");
   }
+  await expect(lever("Intense music")).toHaveAttribute("aria-checked", "false");
 
   await press(page.getByRole("button", { name: /Start game/ }));
   await press(page.getByRole("button", { name: "Draw card", exact: true }));
@@ -147,7 +159,7 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   }
 
   // Switch everything off again: the next visitor of this browser starts in silence.
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) await press(page.getByRole("switch", { name }));
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) await press(lever(name));
   expect(errors).toEqual([]);
 });
 

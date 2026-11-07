@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSession } from "@/lib/session";
-import { growlDelay, narrationUrl, parseSettings } from "@/app/sound";
+import { flip, growlDelay, narrationUrl, parseSettings } from "@/app/sound";
 
 const SECRET = "test-secret-not-used-anywhere-else";
 let cookieValue: string | undefined;
@@ -17,15 +17,33 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("sound switches", () => {
   it("remember only real on/off values, and start all off", () => {
-    const off = { narrate: false, ambience: false, music: false, zombies: false };
+    const off = { narrate: false, ambience: false, music: false, intense: false, zombies: false };
     expect(parseSettings(null)).toEqual(off);
     expect(parseSettings("not json")).toEqual(off);
     expect(parseSettings('{"narrate":true,"ambience":"yes","music":true,"zombies":true}')).toEqual({
       narrate: true,
       ambience: false,
       music: true,
+      intense: false,
       zombies: true,
     });
+    expect(parseSettings('{"intense":true}').intense).toBe(true);
+  });
+
+  it("let only one of Music and Intense music be on", () => {
+    const off = parseSettings(null);
+    const music = flip(off, "music");
+    expect([music.music, music.intense]).toEqual([true, false]);
+    const intense = flip(music, "intense");
+    expect([intense.music, intense.intense]).toEqual([false, true]);
+    const back = flip(intense, "music");
+    expect([back.music, back.intense]).toEqual([true, false]);
+    // Switching one off leaves the other off too, and other switches are never touched.
+    expect(flip(back, "music")).toEqual(off);
+    const zombies = flip(flip(off, "zombies"), "intense");
+    expect(flip(zombies, "music")).toEqual({ ...off, zombies: true, music: true });
+    // Stored settings with both on (from a bug or by hand) come back with the normal music only.
+    expect(parseSettings('{"music":true,"intense":true}')).toMatchObject({ music: true, intense: false });
   });
 
   it("space the zombie growls between 14 and 40 seconds", () => {
@@ -72,6 +90,7 @@ describe("narration", () => {
 describe("private music", () => {
   it("is kept out of git and the public folder", () => {
     expect(() => execSync("git check-ignore -q data/music/zombie-music.mp3")).not.toThrow();
+    expect(() => execSync("git check-ignore -q data/music/zombie-music-intense.mp3")).not.toThrow();
     expect(readdirSync("public/sounds").filter((f) => /music/.test(f))).toEqual([]);
   });
 
@@ -82,8 +101,9 @@ describe("private music", () => {
     cookieValue = await createSession("sean", SECRET);
     expect((await ask("..%2F..%2Fcards")).status).toBe(404);
     expect((await ask("no-such-track")).status).toBe(404);
-    if (existsSync("data/music/zombie-music.mp3")) {
-      const res = await ask("zombie-music");
+    for (const track of ["zombie-music", "zombie-music-intense"]) {
+      if (!existsSync(`data/music/${track}.mp3`)) continue;
+      const res = await ask(track);
       expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toBe("audio/mpeg");
       expect(res.headers.get("cache-control")).toMatch(/private/);

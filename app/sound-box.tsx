@@ -8,12 +8,14 @@ const SWITCHES: [SoundSwitch, string][] = [
   ["narrate", "Narrate"],
   ["ambience", "Ambience"],
   ["music", "Music"],
+  ["intense", "Intense music"],
   ["zombies", "Zombies"],
 ];
-const ALL_OFF: SoundSettings = { narrate: false, ambience: false, music: false, zombies: false };
+const ALL_OFF: SoundSettings = { narrate: false, ambience: false, music: false, intense: false, zombies: false };
 
 // A small steel switch box on the wall, like the breaker panel: a lever and a lamp per sound.
-// Lever up and lamp lit means on. Flips at once on tap.
+// Lever up and lamp lit means on. Flips at once on tap. Music and Intense music are linked: only
+// one of them is on at a time (sound.ts).
 export default function SoundBox() {
   const settings = useSyncExternalStore(sound.subscribe, () => sound.settings, () => ALL_OFF);
   return (

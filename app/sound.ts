@@ -1,21 +1,25 @@
-// The table's sound: card narration, the wind ambience, music and zombie growls, switched on and
-// off in the switch box (sound-box.tsx). Everything plays through one Web Audio graph, so they
+// The table's sound: card narration, the wind ambience, music (normal or intense) and zombie
+// growls, switched on and off in the switch box (sound-box.tsx). Everything plays through one Web Audio graph, so they
 // mix: while the narrator speaks, ambience, music and growls duck down.
 //
 // Browsers only start sound after a tap, so the audio context is opened (or resumed) on the
 // first tap after the page loads; switches left on from last time start sounding then.
 
-export type SoundSwitch = "narrate" | "ambience" | "music" | "zombies";
+export type SoundSwitch = "narrate" | "ambience" | "music" | "intense" | "zombies";
 export type SoundSettings = Record<SoundSwitch, boolean>;
 
 const STORE = "sound";
-const OFF: SoundSettings = { narrate: false, ambience: false, music: false, zombies: false };
+const OFF: SoundSettings = { narrate: false, ambience: false, music: false, intense: false, zombies: false };
+
+// Music and Intense music are linked: switching one on switches the other off (Sean, 2026-11-07).
+const PARTNER: Partial<Record<SoundSwitch, SoundSwitch>> = { music: "intense", intense: "music" };
 
 // The looping clips, played exactly as the original files; only their volume is set.
 const LOOPS = {
-  ambience: { url: "/sounds/ambience-wind.mp3", level: 0.75 }, // a little under its own volume
-  music: { url: "/api/music/zombie-music", level: 0.5 }, // Sean's own track, private (login only)
-};
+  ambience: { url: "/sounds/ambience-wind.mp3", level: 0.75, bus: "ambience" }, // a little under its own volume
+  music: { url: "/api/music/zombie-music", level: 0.5, bus: "music" }, // Sean's own track, private (login only)
+  intense: { url: "/api/music/zombie-music-intense", level: 0.5, bus: "music" }, // its intense version, likewise
+} as const;
 type Loop = keyof typeof LOOPS;
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
 const LEVEL = { zombies: 0.6, narration: 1 }; // growls a little lower (Sean, 2026-11-03)
@@ -26,7 +30,8 @@ const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
 export const narrationUrl = (cardId: string, clip: "text" | number) =>
   `/api/narration/${encodeURIComponent(cardId)}/${clip === "text" ? "text" : `option-${clip + 1}`}`;
 
-// Settings saved in this browser; anything unreadable counts as all off.
+// Settings saved in this browser; anything unreadable counts as all off. Both kinds of music on
+// at once can't happen; if the stored settings say so anyway, the normal music wins.
 export function parseSettings(raw: string | null): SoundSettings {
   try {
     const value = JSON.parse(raw ?? "{}");
@@ -34,11 +39,20 @@ export function parseSettings(raw: string | null): SoundSettings {
       narrate: value.narrate === true,
       ambience: value.ambience === true,
       music: value.music === true,
+      intense: value.intense === true && value.music !== true,
       zombies: value.zombies === true,
     };
   } catch {
     return { ...OFF };
   }
+}
+
+// The settings after flipping one switch: switching Music or Intense music on switches the other off.
+export function flip(settings: SoundSettings, which: SoundSwitch): SoundSettings {
+  const next = { ...settings, [which]: !settings[which] };
+  const partner = PARTNER[which];
+  if (partner && next[which]) next[partner] = false;
+  return next;
 }
 
 // Seconds until the next growl, given a random number in [0, 1).
@@ -74,6 +88,7 @@ class Sound {
         if (this.stopped || document.hidden || !this.open()) return;
         if (this.settings.ambience) void this.startLoop("ambience");
         if (this.settings.music) void this.startLoop("music");
+        if (this.settings.intense) void this.startLoop("intense");
         if (this.settings.zombies) this.scheduleGrowl(true);
       },
       true,
@@ -93,6 +108,7 @@ class Sound {
     this.stopNarration();
     this.stopLoop("ambience");
     this.stopLoop("music");
+    this.stopLoop("intense");
     this.stopGrowls();
     void this.ctx?.suspend();
   }
@@ -104,7 +120,7 @@ class Sound {
 
   // Flips a switch; called from a tap, so sound may start right away.
   toggle(which: SoundSwitch) {
-    this.settings = { ...this.settings, [which]: !this.settings[which] };
+    this.settings = flip(this.settings, which);
     try {
       localStorage.setItem(STORE, JSON.stringify(this.settings));
     } catch {
@@ -113,9 +129,10 @@ class Sound {
     this.listeners.forEach((l) => l());
     if (this.stopped || !this.open()) return;
     if (which === "narrate" && !this.settings.narrate) this.stopNarration();
-    if (which === "ambience" || which === "music") {
-      if (this.settings[which]) void this.startLoop(which);
-      else this.stopLoop(which);
+    // The loops follow their switches; a linked switch turned off stops its music too.
+    for (const loop of ["ambience", "music", "intense"] as const) {
+      if (this.settings[loop]) void this.startLoop(loop);
+      else this.stopLoop(loop);
     }
     if (which === "zombies") {
       if (this.settings.zombies) this.scheduleGrowl(true);
@@ -213,7 +230,7 @@ class Sound {
     const ctx = this.ctx;
     const out = ctx.createGain();
     out.gain.value = 0;
-    out.connect(this.bus[which]);
+    out.connect(this.bus[LOOPS[which].bus]);
     const handle = { stop: () => {} };
     this.loops[which] = handle;
 
