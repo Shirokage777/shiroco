@@ -41,12 +41,17 @@ const scream = (voice: number, clips: number) =>
 const CALLS = {
   zombies: {
     voices: Array.from({ length: 7 }, (_, i) => [`/sounds/zombie-${i + 1}.mp3`]),
-    gap: [14, 40], // seconds between growls
+    first: [2, 5], // seconds until the first growl after switching on
+    gap: [14, 40], // seconds from one growl's start to the next
+    fromEnd: false,
     pitch: [0.9, 1.05], // growls vary a little in pitch
   },
   screams: {
     voices: [scream(1, 9), scream(2, 6), scream(3, 1), scream(4, 2)],
-    gap: [25, 70], // rarer than the growls: each one is a death
+    // Straight away, then close together: 1-2 s of quiet after each scream (Sean, 2026-11-07).
+    first: [0, 0],
+    gap: [1, 2],
+    fromEnd: true, // the gap counts from the end of the scream, so they never pile on each other
     pitch: [1, 1], // voices stay natural
   },
 } as const;
@@ -83,7 +88,7 @@ export function flip(settings: SoundSettings, which: SoundSwitch): SoundSettings
   return next;
 }
 
-// Seconds until the next growl or scream, given a random number in [0, 1).
+// Seconds of gap before the next growl or scream, given a random number in [0, 1).
 export const callDelay = (call: Call, r: number) => {
   const [lo, hi] = CALLS[call].gap;
   return lo + r * (hi - lo);
@@ -337,23 +342,29 @@ class Sound {
     delete this.loops[which];
   }
 
-  // Now and then a growl or a scream, from a random direction and never the same voice twice
-  // running. Right after switching on, the first comes within seconds, so you know it works.
-  private schedule(call: Call, soon = false) {
+  // Growls and screams, from a random direction and never the same voice twice running. Right
+  // after switching on, the first comes at once or within seconds, so you know it works. The timer
+  // stays set while a clip loads, so a tap meanwhile never starts a second one alongside.
+  private schedule(call: Call, soon = false, wait = 0) {
     const state = this.calls[call];
     if (state.timer) return;
-    const delay = soon ? 2 + Math.random() * 3 : callDelay(call, Math.random());
+    const [lo, hi] = CALLS[call].first;
+    const delay = wait + (soon ? lo + Math.random() * (hi - lo) : callDelay(call, Math.random()));
     state.timer = setTimeout(async () => {
-      state.timer = null;
-      if (!this.settings[call] || !this.ctx || !this.bus) return;
-      if (this.ctx.state !== "running") return this.schedule(call); // paused: nothing piling up for later
-      const { voices, pitch } = CALLS[call];
+      const next = (after = 0) => {
+        state.timer = null;
+        this.schedule(call, false, after);
+      };
+      if (!this.settings[call] || !this.ctx || !this.bus) return void (state.timer = null);
+      if (this.ctx.state !== "running") return next(); // paused: nothing piling up for later
+      const { voices, pitch, fromEnd } = CALLS[call];
       const voice = nextVoice(voices.length, state.last, Math.random());
       state.last = voice;
       const clips = voices[voice];
       const round = state.round;
       const buffer = await this.load(clips[Math.floor(Math.random() * clips.length)]);
       if (round !== state.round) return; // switched off (or off and on) while it loaded
+      let length = 0;
       if (buffer) {
         const source = this.ctx.createBufferSource();
         source.buffer = buffer;
@@ -367,8 +378,9 @@ class Sound {
         state.playing.add(playing);
         source.onended = () => state.playing.delete(playing);
         source.start();
+        length = buffer.duration / source.playbackRate.value;
       }
-      this.schedule(call);
+      next(fromEnd ? length : 0);
     }, delay * 1000);
   }
 

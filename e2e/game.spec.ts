@@ -277,3 +277,33 @@ test("Intense music starts at full volume at once, the normal music fades in", a
   expect(musicFirst / musicLater).toBeLessThan(0.5);
   await press(lever("Music")); // leave it off for the next run
 });
+
+// Screams start straight away and follow each other closely: 1-2 s of quiet after each one, never
+// on top of each other (Sean, 2026-11-07). Timed on the clips the page actually starts playing.
+test("Screams start at once and come 1-2 seconds apart", async ({ page }, info) => {
+  test.skip(info.project.name !== "chrome-laptop", "one engine is enough to time the sound");
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    const starts: { at: number; length: number }[] = [];
+    (window as unknown as { __starts: typeof starts }).__starts = starts;
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (this: AudioBufferSourceNode, ...args: number[]) {
+      if (this.buffer && !this.loop && this.buffer.duration < 20) starts.push({ at: performance.now() / 1000, length: this.buffer.duration });
+      return start.apply(this, args as []);
+    } as typeof start;
+  });
+  await login(page);
+  const lever = page.getByRole("switch", { name: "Screams", exact: true });
+  const switchedAt = await page.evaluate(() => performance.now() / 1000);
+  await press(lever);
+  const starts = () => page.evaluate(() => (window as unknown as { __starts: { at: number; length: number }[] }).__starts);
+  await expect.poll(async () => (await starts()).length, { timeout: 45_000 }).toBeGreaterThanOrEqual(3);
+  const s = await starts();
+  expect(s[0].at - switchedAt).toBeLessThan(1);
+  for (let i = 1; i < s.length; i++) {
+    const quiet = s[i].at - (s[i - 1].at + s[i - 1].length);
+    expect(quiet).toBeGreaterThan(0.9);
+    expect(quiet).toBeLessThan(2.4);
+  }
+  await press(lever); // leave it off for the next run
+});

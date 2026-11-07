@@ -53,9 +53,9 @@ describe("sound switches", () => {
     expect(growlDelay(0.999)).toBeLessThan(40);
   });
 
-  it("space the screams between 25 and 70 seconds, rarer than the growls", () => {
-    expect(callDelay("screams", 0)).toBe(25);
-    expect(callDelay("screams", 0.999)).toBeLessThan(70);
+  it("leave 1 to 2 seconds between screams, so they come close together", () => {
+    expect(callDelay("screams", 0)).toBe(1);
+    expect(callDelay("screams", 0.999)).toBeLessThan(2);
   });
 
   it("never pick the same voice twice running", () => {
