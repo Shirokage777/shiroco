@@ -75,13 +75,13 @@ describe("sound switches", () => {
     const sources = readFileSync("public/sounds/SOURCES.md", "utf8");
     expect(files).toContain("ambience-wind.mp3");
     for (let n = 1; n <= 7; n++) expect(files).toContain(`zombie-${n}.mp3`);
-    expect(screamClips).toHaveLength(17);
+    expect(screamClips).toHaveLength(18);
     for (const url of screamClips) {
       const name = url.replace("/sounds/", "");
       expect(files).toContain(name);
       expect(sources).toContain(name.replace(/-\d+\.mp3$/, ""));
     }
-    expect(files.filter((f) => f.startsWith("scream-"))).toHaveLength(17);
+    expect(files.filter((f) => f.startsWith("scream-"))).toHaveLength(18);
   });
 });
 

@@ -37,7 +37,7 @@ const LOOP_FADE = 3; // seconds a loop crossfades from its end into its start
 const DUCK = 0.3; // ambience, music, growls and screams while the narrator speaks
 
 // Sounds that come now and then, from a random direction: zombie growls, and survivors screaming
-// as they die (Sean's picks, 2026-11-07: two men and a woman, each voice a group of clips).
+// as they die (Sean's picks, 2026-11-07: two men and two women, each voice a group of clips).
 // Each call picks a voice other than the last one, then one of its clips.
 const scream = (voice: number, clips: number) =>
   Array.from({ length: clips }, (_, i) => `/sounds/scream-${voice}-${i + 1}.mp3`);
@@ -51,7 +51,7 @@ const CALLS = {
     volume: [0.5, 1], // near and far
   },
   screams: {
-    voices: [scream(1, 9), scream(2, 6), scream(3, 2)],
+    voices: [scream(1, 9), scream(2, 6), scream(3, 2), scream(4, 1)],
     // Straight away, then a new scream every 1-2 s, overlapping and mixing with the ones still
     // going, like several people dying at once (Sean, 2026-11-07).
     first: [0, 0],
