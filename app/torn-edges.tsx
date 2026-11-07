@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { tornClipPath } from "./torn-edge";
+import { tornClipPath, tornEdgeImage } from "./torn-edge";
 import table from "./table.module.css";
 
 // Gives every paper note on the page its torn outline (torn-edge.ts), as the CSS variable
-// --torn that .paper::before clips to. Notes come and go with the game, so new ones are
+// --torn that .paper::before clips to, and the dirt along that outline as --edge, its top layer. Notes come and go with the game, so new ones are
 // picked up as they appear; a note's outline is worked out again only when its size changes.
 // Size changes are seen after layout and before paint, so a note never shows untorn.
 export default function TornEdges() {
@@ -14,6 +14,7 @@ export default function TornEdges() {
       for (const { target, borderBoxSize } of entries) {
         const { inlineSize: w, blockSize: h } = borderBoxSize[0];
         (target as HTMLElement).style.setProperty("--torn", tornClipPath(w, h));
+        (target as HTMLElement).style.setProperty("--edge", tornEdgeImage(w, h));
       }
     });
     const watch = (root: ParentNode) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tornClipPath, tornOutline } from "@/app/torn-edge";
+import { tornClipPath, tornEdgeImage, tornOutline } from "@/app/torn-edge";
 
 describe("torn paper outline", () => {
   it("stays inside the note and goes all the way round", () => {
@@ -41,9 +41,23 @@ describe("torn paper outline", () => {
     expect(tornClipPath(320, 140)).toBe(tornClipPath(320, 140));
   });
 
+  it("darkens the edge along the same outline, the same way every time, without filters", () => {
+    const image = tornEdgeImage(320, 140);
+    expect(image).toBe(tornEdgeImage(320, 140));
+    expect(image.startsWith('url("data:image/svg+xml,')).toBe(true);
+    const svg = decodeURIComponent(image.slice('url("data:image/svg+xml,'.length, -2));
+    const [x, y] = tornOutline(320, 140)[0];
+    expect(svg).toContain(`d="M${x.toFixed(1)} ${y.toFixed(1)}L`);
+    expect(svg).not.toMatch(/<filter|feTurbulence|feGaussianBlur/);
+    expect(svg).not.toContain('"'.repeat(2));
+  });
+
   it("is quick enough to work out for the biggest card", () => {
     const start = performance.now();
-    for (let i = 0; i < 20; i++) tornClipPath(600, 1600, i);
-    expect((performance.now() - start) / 20).toBeLessThan(5);
+    for (let i = 0; i < 20; i++) {
+      tornClipPath(600, 1600, i);
+      tornEdgeImage(600, 1600, i);
+    }
+    expect((performance.now() - start) / 20).toBeLessThan(10);
   });
 });
