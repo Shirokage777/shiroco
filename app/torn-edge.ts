@@ -104,6 +104,17 @@ function crossing(a: Point, b: Point, c: Point, d: Point): Point | null {
   return [a[0] + s * (b[0] - a[0]), a[1] + s * (b[1] - a[1])];
 }
 
+// A fold line on worn paper is never ruler-straight: points across the width (and a little past
+// both edges, where the torn outline cuts it off), wobbling up to FOLD_WOBBLE px off the line.
+const FOLD_WOBBLE = 4;
+export function foldLine(w: number, y: number, seed: number): [number, number][] {
+  const rand = random(seed * 7919 + 13);
+  const wave = octave(w + 48, 28, rand);
+  const points: [number, number][] = [];
+  for (let x = -24; x <= w + 24; x += STEP * 2) points.push([x, y + (wave(x + 24) * 2 - 1) * FOLD_WOBBLE]);
+  return points;
+}
+
 export function tornClipPath(w: number, h: number, seed = 1): string {
   return `polygon(${tornOutline(w, h, seed)
     .map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`)

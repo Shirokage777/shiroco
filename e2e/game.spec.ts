@@ -9,9 +9,22 @@ const MIN_TAP = 40; // px, smallest comfortable tap target (Apple recommends 44)
 // Waits until the button can be seen, then presses it. Playwright would also wait for a few
 // steady frames, but Safari's engine on Windows draws in software at a few frames a second, so
 // that wait times out for no fault of the app (a real iPhone draws with its graphics chip).
+// After the press, waits for the paper to settle: notes turn, unfold and fold (flip.ts, unfold.ts),
+// and the next step must see the note that ends up on the wall, not one halfway through a turn.
 async function press(target: Locator) {
   await expect(target).toBeVisible();
   await target.click({ force: true });
+  await settle(target.page());
+}
+
+async function settle(page: Page) {
+  await page.waitForFunction(
+    () =>
+      !document.querySelector("[aria-hidden=true][style*=perspective]") &&
+      document.getAnimations().every((a) => a.playState !== "running" || a.effect?.getComputedTiming().endTime === Infinity),
+    undefined,
+    { timeout: 15000 },
+  );
 }
 
 async function login(page: Page) {

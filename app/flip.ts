@@ -9,6 +9,8 @@
 // turnAway   front to edge-on: the note leaves; the caller then swaps what is shown
 // turnIn     edge-on to front: the newly shown note arrives, finishing the turn
 
+import { tornClipPath, tornEdgeImage } from "./torn-edge";
+
 const PANELS_PER_SIDE = 6;
 const TURN_MS = 700;
 const BEND_DEG = 7; // bend per hinge at its strongest
@@ -19,6 +21,14 @@ type Step = { angle: number; bend: number; light: number };
 // Height of the sheet that last turned away. The next note may be a different size, so it
 // starts its turn-in at that height and grows or shrinks to its own: no jump at the swap.
 let awayHeight = 0;
+
+// Gives a sheet its torn outline and dirt now, if torn-edges.tsx has not got to it yet (a sheet
+// made just before the turn): its copies in the turn must never show clean-cut paper.
+function tear(sheet: HTMLElement, width: number, height: number) {
+  if (sheet.style.getPropertyValue("--torn")) return;
+  sheet.style.setProperty("--torn", tornClipPath(width, height));
+  sheet.style.setProperty("--edge", tornEdgeImage(width, height));
+}
 
 // One side of a panel, showing the slice of `content` that lies under the panel.
 function face(content: HTMLElement, offsetX: number, slice: number, width: number, height: number, back: boolean) {
@@ -46,6 +56,7 @@ function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, back
   const width = note.offsetWidth;
   const height = note.offsetHeight;
   const slice = width / (2 * PANELS_PER_SIDE);
+  tear(note, width, height);
   const timing: KeyframeAnimationOptions = { duration: ms, easing, fill: "forwards" };
 
   const layer = document.createElement("div");
@@ -86,6 +97,7 @@ function turn(note: HTMLElement, steps: Step[], ms: number, easing: string, back
       if (backClass) {
         const back = document.createElement("div");
         back.className = backClass;
+        tear(back, width, height);
         faces.push(face(back, offsetX, slice, width, height, true));
       }
       for (const f of faces) {

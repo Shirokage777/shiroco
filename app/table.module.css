@@ -35,7 +35,7 @@
 
 /* The paper look, shared by the notes and the unfolding flaps. */
 .paper::before,
-.flap {
+.flap::before {
   background-color: #d4c9ab;
   background-image:
     /* The blackened, sooty tear (torn-edge.ts, set by torn-edges.tsx). */
@@ -305,6 +305,21 @@
   opacity: 0;
   pointer-events: none; /* flaps stay in place after animating; clicks must pass through */
   transform-origin: top center;
+  /* Only its own slice of the card, between rough fold lines (matchCard in unfold.ts). */
+  clip-path: var(--band, inset(0));
+}
+
+/* A flap is a slice of the card's own sheet: its paper is the whole card's paper, torn outline
+   and dirt included, shifted so the slice lines up (matchCard in unfold.ts). So the paper stays
+   torn while it folds, never a clean-cut strip. */
+.flap::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--slice-top, 0px));
+  height: var(--card-h, 100%);
+  clip-path: var(--torn, none);
 }
 
 .flap1 {
@@ -338,15 +353,15 @@
 @keyframes refold {
   0%,
   33% {
-    clip-path: inset(-24px -24px 50% -24px);
+    clip-path: var(--keep-half, inset(-24px -24px 50% -24px));
   }
   33.1%,
   66% {
-    clip-path: inset(-24px -24px 75% -24px);
+    clip-path: var(--keep-quarter, inset(-24px -24px 75% -24px));
   }
   66.1%,
   100% {
-    clip-path: inset(-24px -24px 87.5% -24px);
+    clip-path: var(--keep-eighth, inset(-24px -24px 87.5% -24px));
   }
 }
 
@@ -379,18 +394,18 @@
 @keyframes foldHalf {
   0% {
     opacity: 1;
-    clip-path: inset(0);
+    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(0deg);
     animation-timing-function: ease-in-out;
   }
   33% {
-    clip-path: inset(0);
+    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(178deg);
   }
   33.1%,
   66% {
     opacity: 1;
-    clip-path: inset(50% 0 0 0);
+    clip-path: var(--band-half, inset(50% 0 0 0));
     transform: perspective(1400px) rotateX(178deg);
   }
   66.1%,
@@ -404,23 +419,23 @@
   0%,
   33% {
     opacity: 0;
-    clip-path: inset(0);
+    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(0deg);
   }
   33.1% {
     opacity: 1;
-    clip-path: inset(0);
+    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(0deg);
     animation-timing-function: ease-in-out;
   }
   66% {
-    clip-path: inset(0);
+    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(178deg);
   }
   66.1%,
   100% {
     opacity: 1;
-    clip-path: inset(50% 0 0 0);
+    clip-path: var(--band-half, inset(50% 0 0 0));
     transform: perspective(1400px) rotateX(178deg);
   }
 }
