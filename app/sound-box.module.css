@@ -36,6 +36,8 @@
 .switch {
   display: grid;
   justify-items: center;
+  /* Levers, lamps and the first line of every label line up, also next to the two-line label. */
+  align-content: start;
   gap: 5px;
   min-width: 60px;
   padding: 2px 2px 0;
