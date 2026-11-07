@@ -109,3 +109,41 @@ export function tornClipPath(w: number, h: number, seed = 1): string {
     .map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`)
     .join(",")})`;
 }
+
+// The dirt along the tear: a charred rim right at the edge, soot fading inward, and uneven darker
+// patches, all following the same outline as the clip. Drawn as a plain SVG picture (strokes only,
+// no filters), so the browser paints it once like any image. The strokes sit on the outline, and
+// the clip cuts off their outer half, so a stroke of width 2d darkens d px inward.
+const SOOT = "#26170a";
+const CHAR = "#120a04";
+
+export function tornEdgeImage(w: number, h: number, seed = 1): string {
+  const points = tornOutline(w, h, seed);
+  const rand = random(seed * 104729 + Math.round(w) * 17 + Math.round(h) * 7);
+  const d = `M${points.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join("L")}Z`;
+  // Random on/off lengths, so the patches are uneven and never repeat in a pattern.
+  const dashes = (on: [number, number], off: [number, number]) =>
+    Array.from({ length: 14 }, (_, i) => {
+      const [lo, hi] = i % 2 ? off : on;
+      return (lo + rand() * (hi - lo)).toFixed(0);
+    }).join(" ");
+  const stroke = (width: number, color: string, opacity: number, dash?: string) =>
+    `<use href="#e" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${width}"${dash ? ` stroke-dasharray="${dash}" stroke-dashoffset="${(rand() * 200).toFixed(0)}"` : ""}/>`;
+
+  const layers = [
+    // Soot: many thin steps, so it fades smoothly from the edge to about 15 px in.
+    ...Array.from({ length: 12 }, (_, i) => stroke(2.5 * (i + 1), SOOT, 0.036)),
+    // Uneven darker patches.
+    stroke(22, SOOT, 0.13, dashes([20, 90], [25, 110])),
+    stroke(14, SOOT, 0.17, dashes([12, 60], [20, 90])),
+    stroke(8, CHAR, 0.22, dashes([8, 40], [15, 70])),
+    // The blackened rim, thicker in places.
+    stroke(3.4, CHAR, 0.6),
+    stroke(6, CHAR, 0.38, dashes([6, 30], [10, 50])),
+  ];
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w)}" height="${Math.round(h)}" viewBox="0 0 ${Math.round(w)} ${Math.round(h)}">` +
+    `<defs><path id="e" d="${d}" fill="none" stroke-linejoin="round" stroke-linecap="round"/></defs>` +
+    `<g fill="none" stroke-linejoin="round" stroke-linecap="round">${layers.join("")}</g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
