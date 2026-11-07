@@ -2,7 +2,7 @@
 
 All sounds here are CC0 (public domain): free to use, no attribution required. The ambience wind
 is the original file at full quality (the app crossfades its loop); the zombie growls were
-re-encoded to lighter MP3s with `scripts/prepare-sounds.py`. The screams are cut from four studio
+re-encoded to lighter MP3s with `scripts/prepare-sounds.py`. The screams are cut from three studio
 recordings on Freesound (24-bit WAV), one scream per file, each set to the same loudness, by the same
 script.
 
@@ -19,7 +19,6 @@ script.
 
 | scream-1-1 … scream-1-9.mp3 | VOXScrm_Loud Scream Male Medium Distance In Forest LCR (VanEngelen, Freesound #873718) | https://freesound.org/people/VanEngelen/sounds/873718/ |
 | scream-2-1 … scream-2-6.mp3 | Man screaming.wav (Archeos, Freesound #325548) | https://freesound.org/people/Archeos/sounds/325548/ |
-| scream-3-1.mp3 | Hysterical female screams.wav (tosha73, Freesound #502924) | https://freesound.org/people/tosha73/sounds/502924/ |
-| scream-4-1, scream-4-2.mp3 | Scream, female x2 (peridactyloptrix, Freesound #208893) | https://freesound.org/people/peridactyloptrix/sounds/208893/ |
+| scream-3-1, scream-3-2.mp3 | Scream, female x2 (peridactyloptrix, Freesound #208893) | https://freesound.org/people/peridactyloptrix/sounds/208893/ |
 
 Growls and wind downloaded 2026-11-03, screams 2026-11-07; each page states CC0.

@@ -6,9 +6,9 @@ the zombie growls to lighter MP3s.
 Run (with any Python that has soundfile, e.g. the Kokoro venv from make-narration.py):
   python scripts/prepare-sounds.py <folder with the downloaded originals>
 
-The screams (Sean's picks, 2026-11-07) are cut from the four Freesound studio originals, one
+The screams (Sean's picks, 2026-11-07) are cut from three Freesound studio originals, one
 scream per file, each set to the same loudness as the growls (needs pyloudnorm too):
-  python scripts/prepare-sounds.py screams <folder with the four .wav originals>
+  python scripts/prepare-sounds.py screams <folder with the three .wav originals>
 """
 
 import shutil
@@ -39,8 +39,6 @@ SCREAMS = {
     # An actor's screams of pain and fear (Archeos).
     "325548": [(1.07, 2.98), (4.65, 6.93), (10.31, 12.11), (14.09, 16.40), (19.17, 21.81),
                (24.47, 26.97)],
-    # A woman's hysterical screams, kept whole: the bursts belong together (tosha73).
-    "502924": [(0.0, 11.92)],
     # A woman's piercing scream, twice (peridactyloptrix).
     "208893": [(1.18, 2.12), (4.49, 5.92)],
 }
