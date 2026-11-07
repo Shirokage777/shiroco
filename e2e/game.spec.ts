@@ -108,6 +108,29 @@ test("a full game: draw, reveal, choose, change your mind, done", async ({ page 
   expect(errors).toEqual([]);
 });
 
+// Chrome draws clip-path animations on the graphics chip and, on a screen scaled to a fraction
+// (125 %, 135 %), made the clip too small: the paper lost its right side and bottom while it
+// folded (Sean, 2026-11-08). So no clip is ever animated; folds switch clips by timer.
+test("unfolding and folding never animate a clip", async ({ page }) => {
+  await login(page);
+  await page.evaluate(() => {
+    (window as any).clipAnimations = 0;
+    const watch = () => {
+      for (const a of document.getAnimations())
+        if ((a.effect as KeyframeEffect | null)?.getKeyframes().some((k) => "clipPath" in k)) (window as any).clipAnimations++;
+      requestAnimationFrame(watch);
+    };
+    watch();
+  });
+  await press(page.getByRole("button", { name: /Start game/ }));
+  await press(page.getByRole("button", { name: "Draw card", exact: true }));
+  await press(page.getByRole("button", { name: "Triggered", exact: true }));
+  await press(page.locator("[aria-pressed]").first());
+  await press(page.getByRole("button", { name: "Done", exact: true }));
+  await expect(page.getByRole("button", { name: "Draw card", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).clipAnimations)).toBe(0);
+});
+
 test("New game and Sign out ask first, and Cancel keeps playing", async ({ page }) => {
   await login(page);
   await press(page.getByRole("button", { name: /Start game/ }));

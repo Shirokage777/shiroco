@@ -7,7 +7,7 @@ import type { Card } from "@/lib/types";
 import { narrationUrl, sound } from "./sound";
 import { flipOver, turnAway, turnIn } from "./flip";
 import { Symbol, SymbolText } from "./symbol-text";
-import { above, matchCard, unfold } from "./unfold";
+import { above, cancelUnfold, matchCard, unfold } from "./unfold";
 import styles from "./table.module.css";
 
 const REFOLD_MS = 1500; // the refold animation (table.module.css)
@@ -129,12 +129,25 @@ export default function Table() {
     sound.stopNarration();
     if (!open || stillWanted()) return setGame((g) => (g ? discardCurrent(g) : g));
     setBusy(true);
+    cancelUnfold(open);
     // Rough fold lines (unfold.ts): what stays open after each fold, and the flaps' slices.
-    const { width: w, height: h } = open.getBoundingClientRect();
-    open.style.setProperty("--keep-half", above(w, h / 2));
-    open.style.setProperty("--keep-quarter", above(w, h / 4));
-    open.style.setProperty("--keep-eighth", above(w, h / 8));
-    open.parentElement?.querySelectorAll<HTMLElement>(`.${styles.flap}`).forEach((flap) => matchCard(flap, open));
+    // The clips switch by timer as each fold lands, never animated (see unfold.ts). Each switch
+    // comes just after the next flap appears (CSS .refolding, at 33.1 % and 66.1 %), so the
+    // part it uncovers is already under paper.
+    const w = open.offsetWidth;
+    const h = open.offsetHeight;
+    const host = open.parentElement;
+    host?.querySelectorAll<HTMLElement>(`.${styles.flap}`).forEach((flap) => matchCard(flap, open));
+    const flap = (c: string) => host?.querySelector<HTMLElement>(`.${c}`);
+    open.style.clipPath = above(w, h / 2);
+    window.setTimeout(() => {
+      open.style.clipPath = above(w, h / 4);
+      flap(styles.flap3)?.style.setProperty("clip-path", "var(--band-half)");
+    }, REFOLD_MS / 3 + 15);
+    window.setTimeout(() => {
+      open.style.clipPath = above(w, h / 8);
+      flap(styles.flap2)?.style.setProperty("clip-path", "var(--band-half)");
+    }, (REFOLD_MS * 2) / 3 + 15);
     setRefolding(true);
     window.setTimeout(() => {
       // Stand-in for the folded packet (blank paper side up), so the turn has one plain sheet.
@@ -228,7 +241,7 @@ export default function Table() {
           <article
             key={game.revealed ? "open" : "folded"}
             ref={game.revealed ? openRef : noteRef}
-            className={`${styles.card} ${styles.paper} ${refolding ? styles.refold : ""}`}
+            className={`${styles.card} ${styles.paper}`}
             aria-live="polite"
           >
             {/* The corner marks of the real card: mature and not used in co-op. */}

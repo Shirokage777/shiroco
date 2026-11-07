@@ -10,6 +10,21 @@ import { foldLine, tornClipPath, tornEdgeImage } from "./torn-edge";
 
 const STAGE_MS = 500;
 
+// Clips are switched by timer at each fold, never animated: Chrome draws clip-path animations on
+// the graphics chip, and on a screen scaled to a fraction (125 %, 135 %, ...) it made the clip too
+// small, cutting the card off on the right and at the bottom while it moved.
+const unfolding = new WeakMap<HTMLElement, { timers: number[]; flaps: HTMLElement[] }>();
+
+// Stops an unfold still running on this card (Done pressed before it finished).
+export function cancelUnfold(card: HTMLElement) {
+  const run = unfolding.get(card);
+  if (!run) return;
+  run.timers.forEach((t) => window.clearTimeout(t));
+  run.flaps.forEach((f) => f.remove());
+  card.style.clipPath = "";
+  unfolding.delete(card);
+}
+
 // Fold lines are rough (foldLine), and the same fold always gets the same line, so the card's
 // cut and the flap swinging on that fold match. Positions in px, y measured on the card.
 const fold = (w: number, y: number) => foldLine(w, y, Math.round(y) + 1);
@@ -59,17 +74,16 @@ export function unfold(card: HTMLElement, startHeight: number, flapClass: string
   stops.push(1);
   const stages = stops.length - 1;
   const total = stages * STAGE_MS;
-  const width = card.getBoundingClientRect().width;
-  const inset = (shown: number) => above(width, shown * height);
+  const width = card.offsetWidth;
 
-  // The card: hold each opening until its fold has swung down, then show the next part.
-  const keyframes: Keyframe[] = [];
-  stops.slice(0, -1).forEach((shown, i) => {
-    keyframes.push({ offset: i / stages, clipPath: inset(shown) });
-    keyframes.push({ offset: (i + 1) / stages - 0.002, clipPath: inset(shown) });
-  });
-  keyframes.push({ offset: 1, clipPath: "inset(-24px)" });
-  const reveal = card.animate(keyframes, { duration: total, fill: "both" });
+  // The card: hold each opening until its fold has swung down, then show the next part (just
+  // before the flap over it goes, so nothing shows through).
+  card.style.clipPath = above(width, start * height);
+  const timers = stops.slice(1).map((shown, i) =>
+    window.setTimeout(() => {
+      card.style.clipPath = shown >= 1 ? "" : above(width, shown * height);
+    }, (i + 1) * STAGE_MS - 15),
+  );
 
   // The flaps: each starts folded up over what is already open and swings down over the
   // next part of the card, then gets out of the way.
@@ -110,9 +124,7 @@ export function unfold(card: HTMLElement, startHeight: number, flapClass: string
     flaps.push(cover);
   }
 
-  // Afterwards nothing may linger: a finished script animation would override the CSS refold.
-  reveal.finished.then(() => {
-    reveal.cancel();
-    flaps.forEach((f) => f.remove());
-  });
+  // Afterwards nothing may linger.
+  timers.push(window.setTimeout(() => cancelUnfold(card), total + 30));
+  unfolding.set(card, { timers, flaps });
 }

@@ -344,26 +344,8 @@
   padding: 30px 22px;
 }
 
-/* Done: the card folds back up to 1/8 of its size. The big half swings up first,
-   the smallest fold last. */
-.refold {
-  animation: refold 1.5s linear both;
-}
-
-@keyframes refold {
-  0%,
-  33% {
-    clip-path: var(--keep-half, inset(-24px -24px 50% -24px));
-  }
-  33.1%,
-  66% {
-    clip-path: var(--keep-quarter, inset(-24px -24px 75% -24px));
-  }
-  66.1%,
-  100% {
-    clip-path: var(--keep-eighth, inset(-24px -24px 87.5% -24px));
-  }
-}
+/* Done: the card folds back up to 1/8 of its size: the big half swings up first, the smallest
+   fold last. What stays open is clipped by script at each fold (done() in table.tsx). */
 
 /* Each fold folds everything already folded along with it. So the folded part does not
    stay on top: as the next fold starts, the earlier flap is cut down to the part that is not
@@ -394,18 +376,15 @@
 @keyframes foldHalf {
   0% {
     opacity: 1;
-    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(0deg);
     animation-timing-function: ease-in-out;
   }
   33% {
-    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(178deg);
   }
   33.1%,
   66% {
     opacity: 1;
-    clip-path: var(--band-half, inset(50% 0 0 0));
     transform: perspective(1400px) rotateX(178deg);
   }
   66.1%,
@@ -419,23 +398,19 @@
   0%,
   33% {
     opacity: 0;
-    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(0deg);
   }
   33.1% {
     opacity: 1;
-    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(0deg);
     animation-timing-function: ease-in-out;
   }
   66% {
-    clip-path: var(--band, inset(0));
     transform: perspective(1400px) rotateX(178deg);
   }
   66.1%,
   100% {
     opacity: 1;
-    clip-path: var(--band-half, inset(50% 0 0 0));
     transform: perspective(1400px) rotateX(178deg);
   }
 }
