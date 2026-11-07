@@ -202,3 +202,75 @@ test("sound pauses when the phone locks, comes back, and stops on sign out", asy
   await login(page);
   await press(page.getByRole("switch", { name: "Ambience" })); // leave it off for the next run
 });
+
+// Intense music comes in at full volume at once, while the normal music fades in (Sean, 2026-11-07).
+// Measured as the share of the raw recording that reaches the speakers, so the track's own loud and
+// quiet parts don't count: a meter is tapped onto every clip and onto every output.
+test("Intense music starts at full volume at once, the normal music fades in", async ({ page }, info) => {
+  test.skip(info.project.name !== "chrome-laptop", "one engine is enough to measure the sound");
+  await page.addInitScript(() => {
+    const raw = new Map<BaseAudioContext, AnalyserNode>();
+    const out = new Map<BaseAudioContext, AnalyserNode>();
+    const meter = (all: Map<BaseAudioContext, AnalyserNode>, ctx: BaseAudioContext) => {
+      let m = all.get(ctx);
+      if (!m) all.set(ctx, (m = ctx.createAnalyser()));
+      return m;
+    };
+    const connect = AudioNode.prototype.connect as (this: AudioNode, ...args: unknown[]) => unknown;
+    AudioNode.prototype.connect = function (this: AudioNode, ...args: unknown[]) {
+      if (args[0] instanceof AudioDestinationNode) connect.call(this, meter(out, this.context));
+      if (this instanceof AudioBufferSourceNode) connect.call(this, meter(raw, this.context));
+      return connect.apply(this, args);
+    } as typeof AudioNode.prototype.connect;
+    const rms = (m?: AnalyserNode) => {
+      if (!m) return 0;
+      const data = new Float32Array(m.fftSize);
+      m.getFloatTimeDomainData(data);
+      return Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length);
+    };
+    (window as unknown as { __share: () => number | null }).__share = () => {
+      const [ctx] = raw.keys();
+      const r = rms(raw.get(ctx));
+      return r > 0.002 ? rms(out.get(ctx)) / r : null;
+    };
+  });
+  // The average share over a stretch of time, from the moment the clip sounds.
+  const share = async (ms: number) => {
+    const seen: number[] = [];
+    for (const end = Date.now() + ms; Date.now() < end || seen.length < 3; ) {
+      const s = await page.evaluate(() => (window as unknown as { __share: () => number | null }).__share());
+      if (s !== null) seen.push(s);
+      if (Date.now() > end + 10_000) break;
+    }
+    expect(seen.length).toBeGreaterThan(2);
+    return seen.reduce((a, b) => a + b, 0) / seen.length;
+  };
+  const lever = (name: string) => page.getByRole("switch", { name, exact: true });
+  await login(page);
+
+  // While Music is on, the intense track is loaded ahead.
+  const intenseLoaded = page.waitForResponse((r) => r.url().endsWith("/api/music/zombie-music-intense"));
+  await press(lever("Music"));
+  expect((await intenseLoaded).status()).toBe(200);
+  await page.waitForTimeout(1000);
+  await press(lever("Music"));
+  await page.waitForTimeout(1800); // the music has faded out and stopped
+
+  // Intense music: at full volume within its first 300 ms, as loud as seconds later.
+  await press(lever("Intense music"));
+  const intenseFirst = await share(300);
+  await page.waitForTimeout(4000);
+  const intenseLater = await share(1000);
+  expect(intenseLater).toBeGreaterThan(0.2);
+  expect(intenseFirst / intenseLater).toBeGreaterThan(0.85);
+  await press(lever("Intense music"));
+  await page.waitForTimeout(1800);
+
+  // The normal music still fades in: much quieter at first than once it has settled.
+  await press(lever("Music"));
+  const musicFirst = await share(300);
+  await page.waitForTimeout(4000);
+  const musicLater = await share(1000);
+  expect(musicFirst / musicLater).toBeLessThan(0.5);
+  await press(lever("Music")); // leave it off for the next run
+});
