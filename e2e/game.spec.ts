@@ -118,11 +118,11 @@ test("New game and Sign out ask first, and Cancel keeps playing", async ({ page 
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test("the sound levers switch, stay switched, and narration loads", async ({ page }) => {
+test("the sound levers switch, stay switched, and narration and screams load", async ({ page }) => {
   const errors = watchErrors(page);
   await login(page);
   const levers = page.getByRole("switch");
-  await expect(levers).toHaveCount(5);
+  await expect(levers).toHaveCount(6);
   const lever = (name: string) => page.getByRole("switch", { name, exact: true });
 
   // Music and Intense music are linked: one switches the other off.
@@ -135,13 +135,13 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   await expect(lever("Intense music")).toHaveAttribute("aria-checked", "false");
   await press(lever("Music"));
 
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) {
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies", "Screams"]) {
     await expect(lever(name)).toHaveAttribute("aria-checked", "false");
     await press(lever(name));
     await expect(lever(name)).toHaveAttribute("aria-checked", "true");
   }
   await page.reload();
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) {
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies", "Screams"]) {
     await expect(lever(name)).toHaveAttribute("aria-checked", "true");
   }
   await expect(lever("Intense music")).toHaveAttribute("aria-checked", "false");
@@ -151,15 +151,18 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   // The Windows build of Safari's engine has no Web Audio (real Safari does), so the app plays
   // nothing there; only browsers that can play check that the narration loads.
   if (await page.evaluate(() => "AudioContext" in window)) {
+    // Screams were left on: the first one comes within seconds of the first tap after the reload.
+    const screamed = page.waitForResponse((r) => /\/sounds\/scream-\d-\d+\.mp3$/.test(r.url()), { timeout: 15_000 });
     const narration = page.waitForResponse((r) => /\/api\/narration\/[^/]+\/text$/.test(r.url()));
     await press(page.getByRole("button", { name: "Triggered", exact: true }));
     expect((await narration).status()).toBe(200);
+    expect((await screamed).status()).toBe(200);
   } else {
     await press(page.getByRole("button", { name: "Triggered", exact: true }));
   }
 
   // Switch everything off again: the next visitor of this browser starts in silence.
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) await press(lever(name));
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies", "Screams"]) await press(lever(name));
   expect(errors).toEqual([]);
 });
 
@@ -261,7 +264,9 @@ test("Intense music starts at full volume at once, the normal music fades in", a
   const intenseFirst = await share(300);
   await page.waitForTimeout(4000);
   const intenseLater = await share(1000);
-  expect(intenseLater).toBeGreaterThan(0.2);
+  // Exactly its set level (0.5): the safety limiter on the output changes nothing at normal volume.
+  expect(intenseLater).toBeGreaterThan(0.45);
+  expect(intenseLater).toBeLessThan(0.55);
   expect(intenseFirst / intenseLater).toBeGreaterThan(0.85);
   await press(lever("Intense music"));
   await page.waitForTimeout(1800);
@@ -273,4 +278,87 @@ test("Intense music starts at full volume at once, the normal music fades in", a
   const musicLater = await share(1000);
   expect(musicFirst / musicLater).toBeLessThan(0.5);
   await press(lever("Music")); // leave it off for the next run
+});
+
+// Screams start straight away, then a new one every 1-2 s, overlapping the ones still going, and
+// never the same person twice at once (Sean, 2026-11-07). Timed on the clips the page actually plays.
+test("Screams start at once, come every 1-2 seconds and overlap", async ({ page }, info) => {
+  test.skip(info.project.name !== "chrome-laptop", "one engine is enough to time the sound");
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    const starts: { at: number; length: number }[] = [];
+    (window as unknown as { __starts: typeof starts }).__starts = starts;
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (this: AudioBufferSourceNode, ...args: number[]) {
+      if (this.buffer && !this.loop && this.buffer.duration < 20) starts.push({ at: performance.now() / 1000, length: this.buffer.duration });
+      return start.apply(this, args as []);
+    } as typeof start;
+  });
+  await login(page);
+  const lever = page.getByRole("switch", { name: "Screams", exact: true });
+  const switchedAt = await page.evaluate(() => performance.now() / 1000);
+  await press(lever);
+  const starts = () => page.evaluate(() => (window as unknown as { __starts: { at: number; length: number }[] }).__starts);
+  await expect.poll(async () => (await starts()).length, { timeout: 30_000 }).toBeGreaterThanOrEqual(6);
+  const s = await starts();
+  expect(s[0].at - switchedAt).toBeLessThan(1);
+  let overlaps = 0;
+  for (let i = 1; i < s.length; i++) {
+    const apart = s[i].at - s[i - 1].at;
+    expect(apart).toBeGreaterThan(0.9);
+    expect(apart).toBeLessThan(2.6); // 1-2 s, plus a moment to load a clip heard for the first time
+    if (s[i].at < s[i - 1].at + s[i - 1].length) overlaps++;
+  }
+  expect(overlaps).toBeGreaterThan(0);
+  await press(lever); // leave it off for the next run
+});
+
+// Screams are for the intense moments: switched on over the Intense music, they come out louder
+// than the music, so they are heard clearly (Sean, 2026-11-07). Measured at the speakers.
+test("Screams are heard clearly over the Intense music", async ({ page }, info) => {
+  test.skip(info.project.name !== "chrome-laptop", "one engine is enough to measure the sound");
+  test.setTimeout(60_000);
+  await page.addInitScript(() => {
+    const meters = new Map<BaseAudioContext, AnalyserNode>();
+    const connect = AudioNode.prototype.connect as (this: AudioNode, ...args: unknown[]) => unknown;
+    AudioNode.prototype.connect = function (this: AudioNode, ...args: unknown[]) {
+      if (args[0] instanceof AudioDestinationNode) {
+        let m = meters.get(this.context);
+        if (!m) meters.set(this.context, (m = this.context.createAnalyser()));
+        connect.call(this, m);
+      }
+      return connect.apply(this, args);
+    } as typeof AudioNode.prototype.connect;
+    (window as unknown as { __rms: () => number }).__rms = () => {
+      const [m] = meters.values();
+      if (!m) return 0;
+      const data = new Float32Array(m.fftSize);
+      m.getFloatTimeDomainData(data);
+      return Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length);
+    };
+  });
+  // The typical loudness over a stretch: the median of many short readings, silences left out.
+  const loudness = async (ms: number) => {
+    const seen: number[] = [];
+    for (const end = Date.now() + ms; Date.now() < end; ) {
+      const v = await page.evaluate(() => (window as unknown as { __rms: () => number }).__rms());
+      if (v > 0.003) seen.push(v);
+    }
+    seen.sort((a, b) => a - b);
+    return seen[Math.floor(seen.length / 2)];
+  };
+  const lever = (name: string) => page.getByRole("switch", { name, exact: true });
+  await login(page);
+
+  await press(lever("Intense music"));
+  await page.waitForTimeout(1000);
+  const music = await loudness(4000);
+  await press(lever("Intense music"));
+  await page.waitForTimeout(1800);
+
+  await press(lever("Screams"));
+  const screams = await loudness(8000);
+  await press(lever("Screams"));
+  expect(screams / music).toBeGreaterThan(1.2); // at least about 1.5 dB louder than the music
+  expect(screams / music).toBeLessThan(3); // but not blasting far over it
 });

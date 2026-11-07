@@ -10,8 +10,16 @@ const SWITCHES: [SoundSwitch, string][] = [
   ["music", "Music"],
   ["intense", "Intense music"],
   ["zombies", "Zombies"],
+  ["screams", "Screams"],
 ];
-const ALL_OFF: SoundSettings = { narrate: false, ambience: false, music: false, intense: false, zombies: false };
+const ALL_OFF: SoundSettings = {
+  narrate: false,
+  ambience: false,
+  music: false,
+  intense: false,
+  zombies: false,
+  screams: false,
+};
 
 // A small steel switch box on the wall, like the breaker panel: a lever and a lamp per sound.
 // Lever up and lamp lit means on. Flips at once on tap. Music and Intense music are linked: only

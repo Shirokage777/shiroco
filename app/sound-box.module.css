@@ -107,3 +107,27 @@
   outline: 2px solid var(--hazard);
   outline-offset: 2px;
 }
+
+/* Phones: six switches share the full width evenly, with slightly smaller lettering, so the box
+   never pushes the page sideways (a small iPhone has 343 px for it). */
+@media (max-width: 440px) {
+  .box {
+    width: 100%;
+    padding: 7px 6px 8px;
+  }
+
+  .switches {
+    gap: 0;
+  }
+
+  .switch {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 2px 0 0;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+}
