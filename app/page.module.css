@@ -79,10 +79,10 @@
   padding: 24px 16px;
 }
 
-/* The sound switch box hangs at the top right, above the deck count and New game. */
+/* The sound switch box hangs at the top, centred above the notes (Sean, 2026-11-07). */
 .soundRow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   width: min(600px, 100%);
   margin-bottom: 14px;
 }
