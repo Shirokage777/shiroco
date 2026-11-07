@@ -6,6 +6,7 @@
   --ink: #2a2826;
   --font-stamp: "Special Elite";
   --font-typewriter: "Courier Prime";
+  --font-plate: "Barlow Condensed"; /* engraved nameplates */
   --rust: #8b4a2b;
   --rust-dark: #6e3519;
   --hazard: #d9a520;
@@ -78,10 +79,10 @@
   padding: 24px 16px;
 }
 
-/* The sound switch box hangs at the top right, above the deck count and New game. */
+/* The sound switch box hangs at the top, centred above the notes (Sean, 2026-11-07). */
 .soundRow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   width: min(600px, 100%);
   margin-bottom: 14px;
 }

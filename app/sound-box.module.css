@@ -15,16 +15,53 @@
     4px 7px 10px #000000a6;
 }
 
+/* The nameplate: an engraved aluminium plate screwed to the box, letters cut in and filled black,
+   as old and worn as everything else: scratches, pits, grime patches, dirt worked into the
+   edges and round the screws, the black fill worn thin in places (Sean, 2026-11-07). */
 .plate {
+  position: relative;
   justify-self: start;
-  padding: 1px 6px;
-  font-family: var(--font-stamp), monospace;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  padding: 2px 21px 1px;
+  font-family: var(--font-plate), sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.25;
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
   text-transform: uppercase;
-  color: #1a1917;
-  background: #cfc8b2b0;
-  border-radius: 1px;
+  /* Engraved: dark fill sunk into the metal, its lower lip catching the light. */
+  color: #1e1c19;
+  text-shadow: 0 1px 0 #ffffff5c, 0 -1px 0 #0000002e;
+  border-radius: 2px;
+  background-color: #aaa69b;
+  background-image:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7.4' fill='%23241f19' fill-opacity='0.55'/><circle cx='8' cy='8' r='5.6' fill='%23797468'/><circle cx='7.2' cy='7' r='4.4' fill='%23a29d90'/><circle cx='8' cy='8' r='5.6' fill='none' stroke='%23332e26' stroke-width='0.9'/><rect x='2.9' y='7.2' width='10.2' height='1.6' rx='0.5' fill='%231f1c17' transform='rotate(28 8 8)'/><circle cx='10.4' cy='10.6' r='1.6' fill='%235b3a1e' fill-opacity='0.5'/></svg>"), url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7.4' fill='%23241f19' fill-opacity='0.55'/><circle cx='8' cy='8' r='5.6' fill='%23797468'/><circle cx='7.2' cy='7' r='4.4' fill='%23a29d90'/><circle cx='8' cy='8' r='5.6' fill='none' stroke='%23332e26' stroke-width='0.9'/><rect x='2.9' y='7.2' width='10.2' height='1.6' rx='0.5' fill='%231f1c17' transform='rotate(-61 8 8)'/><circle cx='10.4' cy='10.6' r='1.6' fill='%235b3a1e' fill-opacity='0.5'/></svg>"),
+    var(--metal-scratches), var(--metal-scratches), var(--metal-pits), var(--metal-patches-dark),
+    var(--metal-patches-dark), var(--metal-wear), linear-gradient(180deg, #c3bfb4, #8f8a7e);
+  background-size: 9px 9px, 9px 9px, 150px 45px, 210px 63px, 120px 120px, 140px 140px, 90px 90px, auto, auto;
+  background-position: 6px 50%, calc(100% - 6px) 50%, 0 0, 40px 10px, 0 0, 30px 5px, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat, repeat, repeat, repeat, repeat, repeat, no-repeat, no-repeat;
+  /* Cut edge, grime packed into the border, and a shadow so it stands off the box. */
+  box-shadow:
+    inset 0 1px 0 #ffffff66, inset 0 -1px 0 #00000066, inset 0 0 0 1px #2a251d40,
+    inset 0 0 7px 1px #3b311f73, 0 1px 2px #000000b3;
+}
+
+/* Wear over the letters too: dark and bright scratches at random angles, the black fill rubbed
+   thin in places, and dirt settled in the corners and along the bottom edge. */
+.plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='24'><line x1='95.9' y1='7.8' x2='104.5' y2='15.9' stroke='%2321190f' stroke-opacity='0.41' stroke-width='0.80' stroke-linecap='round'/><line x1='28.5' y1='13.3' x2='21.5' y2='26.0' stroke='%2321190f' stroke-opacity='0.22' stroke-width='0.72' stroke-linecap='round'/><line x1='60.9' y1='20.1' x2='70.4' y2='26.2' stroke='%2321190f' stroke-opacity='0.31' stroke-width='0.44' stroke-linecap='round'/><line x1='23.0' y1='1.9' x2='28.1' y2='5.7' stroke='%2321190f' stroke-opacity='0.20' stroke-width='0.71' stroke-linecap='round'/><line x1='84.9' y1='5.1' x2='86.7' y2='8.1' stroke='%2321190f' stroke-opacity='0.40' stroke-width='0.70' stroke-linecap='round'/><line x1='116.8' y1='6.5' x2='106.8' y2='30.1' stroke='%2321190f' stroke-opacity='0.40' stroke-width='0.38' stroke-linecap='round'/><line x1='101.2' y1='23.4' x2='95.0' y2='29.5' stroke='%2321190f' stroke-opacity='0.32' stroke-width='0.53' stroke-linecap='round'/><line x1='16.6' y1='19.3' x2='25.5' y2='19.7' stroke='%2321190f' stroke-opacity='0.36' stroke-width='0.69' stroke-linecap='round'/><line x1='51.9' y1='6.1' x2='51.7' y2='24.0' stroke='%2321190f' stroke-opacity='0.38' stroke-width='0.64' stroke-linecap='round'/><line x1='17.7' y1='12.7' x2='33.3' y2='13.6' stroke='%2321190f' stroke-opacity='0.32' stroke-width='0.38' stroke-linecap='round'/><line x1='57.8' y1='18.3' x2='55.5' y2='20.4' stroke='%2321190f' stroke-opacity='0.34' stroke-width='0.56' stroke-linecap='round'/><line x1='103.7' y1='23.4' x2='111.4' y2='26.0' stroke='%2321190f' stroke-opacity='0.37' stroke-width='0.39' stroke-linecap='round'/><line x1='19.7' y1='0.6' x2='1.8' y2='3.0' stroke='%2321190f' stroke-opacity='0.41' stroke-width='0.61' stroke-linecap='round'/><line x1='87.9' y1='10.0' x2='87.4' y2='34.2' stroke='%2321190f' stroke-opacity='0.33' stroke-width='0.48' stroke-linecap='round'/><line x1='33.2' y1='10.9' x2='38.6' y2='14.6' stroke='%2321190f' stroke-opacity='0.36' stroke-width='0.35' stroke-linecap='round'/><line x1='79.0' y1='2.6' x2='81.8' y2='4.7' stroke='%2321190f' stroke-opacity='0.41' stroke-width='0.52' stroke-linecap='round'/><line x1='55.2' y1='11.7' x2='47.7' y2='22.4' stroke='%2321190f' stroke-opacity='0.38' stroke-width='0.48' stroke-linecap='round'/><line x1='107.9' y1='2.1' x2='106.9' y2='15.1' stroke='%2321190f' stroke-opacity='0.41' stroke-width='0.69' stroke-linecap='round'/><line x1='120.0' y1='11.5' x2='107.0' y2='24.5' stroke='%2321190f' stroke-opacity='0.41' stroke-width='0.46' stroke-linecap='round'/><line x1='116.5' y1='21.0' x2='94.6' y2='32.7' stroke='%2321190f' stroke-opacity='0.34' stroke-width='0.42' stroke-linecap='round'/><line x1='43.1' y1='18.8' x2='51.5' y2='20.1' stroke='%2321190f' stroke-opacity='0.31' stroke-width='0.74' stroke-linecap='round'/><line x1='115.3' y1='2.9' x2='102.5' y2='21.6' stroke='%2321190f' stroke-opacity='0.19' stroke-width='0.58' stroke-linecap='round'/><line x1='74.9' y1='22.9' x2='85.7' y2='26.0' stroke='%2321190f' stroke-opacity='0.34' stroke-width='0.68' stroke-linecap='round'/><line x1='0.6' y1='10.8' x2='-4.7' y2='13.6' stroke='%2321190f' stroke-opacity='0.28' stroke-width='0.40' stroke-linecap='round'/><line x1='45.1' y1='3.0' x2='31.4' y2='6.5' stroke='%2321190f' stroke-opacity='0.33' stroke-width='0.72' stroke-linecap='round'/><line x1='65.1' y1='16.0' x2='90.4' y2='21.7' stroke='%2321190f' stroke-opacity='0.30' stroke-width='0.38' stroke-linecap='round'/><line x1='88.5' y1='4.9' x2='86.1' y2='16.0' stroke='%23fff' stroke-opacity='0.45' stroke-width='0.5' stroke-linecap='round'/><line x1='39.0' y1='5.5' x2='39.3' y2='13.9' stroke='%23fff' stroke-opacity='0.45' stroke-width='0.5' stroke-linecap='round'/><line x1='67.9' y1='17.7' x2='57.0' y2='22.4' stroke='%23fff' stroke-opacity='0.45' stroke-width='0.5' stroke-linecap='round'/><line x1='48.2' y1='2.3' x2='40.0' y2='8.9' stroke='%23fff' stroke-opacity='0.45' stroke-width='0.5' stroke-linecap='round'/><line x1='77.7' y1='15.4' x2='84.6' y2='27.2' stroke='%23fff' stroke-opacity='0.45' stroke-width='0.5' stroke-linecap='round'/><line x1='51.5' y1='12.1' x2='56.2' y2='21.4' stroke='%23fff' stroke-opacity='0.45' stroke-width='0.5' stroke-linecap='round'/></svg>"), var(--metal-scratches), var(--metal-patches-light),
+    radial-gradient(ellipse 30% 70% at 0 100%, #2b211366, transparent 70%),
+    radial-gradient(ellipse 25% 60% at 100% 0, #2b211340, transparent 70%),
+    linear-gradient(0deg, #3a2e1c38, transparent 45%);
+  background-size: 120px 24px, 120px 36px, 70px 70px, auto, auto, auto;
+  background-position: 0 0, 13px 4px, 20px 0, 0 0, 0 0, 0 0;
 }
 
 .switches {

@@ -1,5 +1,6 @@
 // Fonts are bundled from npm (no request to Google at build or run time).
 import "@fontsource/special-elite/latin-400.css";
+import "@fontsource/barlow-condensed/latin-500.css";
 import "@fontsource/courier-prime/latin-400.css";
 import "@fontsource/courier-prime/latin-400-italic.css";
 import "@fontsource/courier-prime/latin-700.css";

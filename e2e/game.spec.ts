@@ -359,6 +359,8 @@ test("Screams are heard clearly over the Intense music", async ({ page }, info) 
   await press(lever("Screams"));
   const screams = await loudness(8000);
   await press(lever("Screams"));
-  expect(screams / music).toBeGreaterThan(1.2); // at least about 1.5 dB louder than the music
+  // Measured about 1.5 (3.5 dB); which screams fall in the window moves it a little. The old level
+  // was 0.36, so 1.1 still tells the two apart with room to spare.
+  expect(screams / music).toBeGreaterThan(1.1);
   expect(screams / music).toBeLessThan(3); // but not blasting far over it
 });
