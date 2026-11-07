@@ -1,15 +1,22 @@
-// The table's sound: card narration, the wind ambience, music (normal or intense) and zombie
-// growls, switched on and off in the switch box (sound-box.tsx). Everything plays through one Web Audio graph, so they
-// mix: while the narrator speaks, ambience, music and growls duck down.
+// The table's sound: card narration, the wind ambience, music (normal or intense), zombie growls
+// and survivors' screams, switched on and off in the switch box (sound-box.tsx). Everything plays
+// through one Web Audio graph, so they mix: while the narrator speaks, everything else ducks down.
 //
 // Browsers only start sound after a tap, so the audio context is opened (or resumed) on the
 // first tap after the page loads; switches left on from last time start sounding then.
 
-export type SoundSwitch = "narrate" | "ambience" | "music" | "intense" | "zombies";
+export type SoundSwitch = "narrate" | "ambience" | "music" | "intense" | "zombies" | "screams";
 export type SoundSettings = Record<SoundSwitch, boolean>;
 
 const STORE = "sound";
-const OFF: SoundSettings = { narrate: false, ambience: false, music: false, intense: false, zombies: false };
+const OFF: SoundSettings = {
+  narrate: false,
+  ambience: false,
+  music: false,
+  intense: false,
+  zombies: false,
+  screams: false,
+};
 
 // Music and Intense music are linked: switching one on switches the other off (Sean, 2026-11-07).
 const PARTNER: Partial<Record<SoundSwitch, SoundSwitch>> = { music: "intense", intense: "music" };
@@ -22,11 +29,30 @@ const LOOPS = {
   intense: { url: "/api/music/zombie-music-intense2", level: 0.5, bus: "music", instant: true }, // its intense version, likewise
 } as const;
 type Loop = keyof typeof LOOPS;
-const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);
-const LEVEL = { zombies: 0.6, narration: 1 }; // growls a little lower (Sean, 2026-11-03)
+const LEVEL = { zombies: 0.6, screams: 0.6, narration: 1 }; // growls a little lower (Sean, 2026-11-03)
 const LOOP_FADE = 3; // seconds a loop crossfades from its end into its start
-const DUCK = 0.3; // ambience, music and growls while the narrator speaks
-const GROWL_GAP: [number, number] = [14, 40]; // seconds between growls
+const DUCK = 0.3; // ambience, music, growls and screams while the narrator speaks
+
+// Sounds that come now and then, from a random direction: zombie growls, and survivors screaming
+// as they die (Sean's picks, 2026-11-07: two men and two women, each voice a group of clips).
+// Each call picks a voice other than the last one, then one of its clips.
+const scream = (voice: number, clips: number) =>
+  Array.from({ length: clips }, (_, i) => `/sounds/scream-${voice}-${i + 1}.mp3`);
+const CALLS = {
+  zombies: {
+    voices: Array.from({ length: 7 }, (_, i) => [`/sounds/zombie-${i + 1}.mp3`]),
+    gap: [14, 40], // seconds between growls
+    pitch: [0.9, 1.05], // growls vary a little in pitch
+  },
+  screams: {
+    voices: [scream(1, 9), scream(2, 6), scream(3, 1), scream(4, 2)],
+    gap: [25, 70], // rarer than the growls: each one is a death
+    pitch: [1, 1], // voices stay natural
+  },
+} as const;
+type Call = keyof typeof CALLS;
+const CALL_NAMES = Object.keys(CALLS) as Call[];
+export const screamClips = CALLS.screams.voices.flat();
 
 export const narrationUrl = (cardId: string, clip: "text" | number) =>
   `/api/narration/${encodeURIComponent(cardId)}/${clip === "text" ? "text" : `option-${clip + 1}`}`;
@@ -42,6 +68,7 @@ export function parseSettings(raw: string | null): SoundSettings {
       music: value.music === true,
       intense: value.intense === true && value.music !== true,
       zombies: value.zombies === true,
+      screams: value.screams === true,
     };
   } catch {
     return { ...OFF };
@@ -56,22 +83,36 @@ export function flip(settings: SoundSettings, which: SoundSwitch): SoundSettings
   return next;
 }
 
-// Seconds until the next growl, given a random number in [0, 1).
-export const growlDelay = (r: number) => GROWL_GAP[0] + r * (GROWL_GAP[1] - GROWL_GAP[0]);
+// Seconds until the next growl or scream, given a random number in [0, 1).
+export const callDelay = (call: Call, r: number) => {
+  const [lo, hi] = CALLS[call].gap;
+  return lo + r * (hi - lo);
+};
+export const growlDelay = (r: number) => callDelay("zombies", r);
+
+// The next voice to call: random, but never the same one twice running (when there is a choice).
+export function nextVoice(voices: number, last: number, r: number) {
+  const pick = Math.floor(r * voices);
+  return pick === last && voices > 1 ? (pick + 1) % voices : pick;
+}
+
+type Playing = { source: AudioBufferSourceNode; gain: GainNode };
+type CallState = { timer: ReturnType<typeof setTimeout> | null; last: number; round: number; playing: Set<Playing> };
 
 class Sound {
   settings: SoundSettings = { ...OFF };
   private listeners = new Set<() => void>();
   private ctx: AudioContext | null = null;
-  private bus: { narration: GainNode; ambience: GainNode; music: GainNode; zombies: GainNode } | null = null;
+  private bus: Record<"narration" | "ambience" | "music" | Call, GainNode> | null = null;
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
   private speaking: AudioBufferSourceNode | null = null;
   private speech = 0; // id of the latest narration, so a slow download never plays out of turn
   private loops: Partial<Record<Loop, { stop: () => void }>> = {};
-  private growlTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastGrowl = -1;
-  private growlRound = 0; // bumped when Zombies is switched off, so a growl still loading is dropped
-  private growls = new Set<{ source: AudioBufferSourceNode; gain: GainNode }>();
+  // Per kind of call: the next one's timer, the last voice, and the clips playing. `round` is bumped
+  // when switched off, so a clip still loading is dropped.
+  private calls = Object.fromEntries(
+    CALL_NAMES.map((c) => [c, { timer: null, last: -1, round: 0, playing: new Set() }]),
+  ) as Record<Call, CallState>;
   private stopped = false; // signed out: silent for good on this page
 
   constructor() {
@@ -91,7 +132,7 @@ class Sound {
         if (this.settings.music) void this.startLoop("music");
         if (this.settings.intense) void this.startLoop("intense");
         this.preloadIntense();
-        if (this.settings.zombies) this.scheduleGrowl(true);
+        for (const call of CALL_NAMES) if (this.settings[call]) this.schedule(call, true);
       },
       true,
     );
@@ -111,7 +152,7 @@ class Sound {
     this.stopLoop("ambience");
     this.stopLoop("music");
     this.stopLoop("intense");
-    this.stopGrowls();
+    for (const call of CALL_NAMES) this.silence(call);
     void this.ctx?.suspend();
   }
 
@@ -137,9 +178,9 @@ class Sound {
       else this.stopLoop(loop);
     }
     this.preloadIntense();
-    if (which === "zombies") {
-      if (this.settings.zombies) this.scheduleGrowl(true);
-      else this.stopGrowls();
+    if (which === "zombies" || which === "screams") {
+      if (this.settings[which]) this.schedule(which, true);
+      else this.silence(which);
     }
   }
 
@@ -191,7 +232,13 @@ class Sound {
         gain.connect(this.ctx!.destination);
         return gain;
       };
-      this.bus = { narration: bus(LEVEL.narration), ambience: bus(1), music: bus(1), zombies: bus(LEVEL.zombies) };
+      this.bus = {
+        narration: bus(LEVEL.narration),
+        ambience: bus(1),
+        music: bus(1),
+        zombies: bus(LEVEL.zombies),
+        screams: bus(LEVEL.screams),
+      };
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
     return true;
@@ -220,6 +267,7 @@ class Sound {
       [this.bus.ambience, 1],
       [this.bus.music, 1],
       [this.bus.zombies, LEVEL.zombies],
+      [this.bus.screams, LEVEL.screams],
     ] as const) {
       bus.gain.cancelScheduledValues(t);
       bus.gain.setTargetAtTime(full * level, t, 0.25);
@@ -289,52 +337,55 @@ class Sound {
     delete this.loops[which];
   }
 
-  // Now and then a growl, from a random direction and never the same one twice running. Right
-  // after switching on, the first comes within seconds, so you know it works.
-  private scheduleGrowl(soon = false) {
-    if (this.growlTimer) return;
-    const delay = soon ? 2 + Math.random() * 3 : growlDelay(Math.random());
-    this.growlTimer = setTimeout(async () => {
-      this.growlTimer = null;
-      if (!this.settings.zombies || !this.ctx || !this.bus) return;
-      if (this.ctx.state !== "running") return this.scheduleGrowl(); // paused: no growls piling up for later
-      let pick = Math.floor(Math.random() * ZOMBIES.length);
-      if (pick === this.lastGrowl) pick = (pick + 1) % ZOMBIES.length;
-      this.lastGrowl = pick;
-      const round = this.growlRound;
-      const buffer = await this.load(ZOMBIES[pick]);
-      if (round !== this.growlRound) return; // switched off (or off and on) while it loaded
+  // Now and then a growl or a scream, from a random direction and never the same voice twice
+  // running. Right after switching on, the first comes within seconds, so you know it works.
+  private schedule(call: Call, soon = false) {
+    const state = this.calls[call];
+    if (state.timer) return;
+    const delay = soon ? 2 + Math.random() * 3 : callDelay(call, Math.random());
+    state.timer = setTimeout(async () => {
+      state.timer = null;
+      if (!this.settings[call] || !this.ctx || !this.bus) return;
+      if (this.ctx.state !== "running") return this.schedule(call); // paused: nothing piling up for later
+      const { voices, pitch } = CALLS[call];
+      const voice = nextVoice(voices.length, state.last, Math.random());
+      state.last = voice;
+      const clips = voices[voice];
+      const round = state.round;
+      const buffer = await this.load(clips[Math.floor(Math.random() * clips.length)]);
+      if (round !== state.round) return; // switched off (or off and on) while it loaded
       if (buffer) {
         const source = this.ctx.createBufferSource();
         source.buffer = buffer;
-        source.playbackRate.value = 0.9 + Math.random() * 0.15;
+        source.playbackRate.value = pitch[0] + Math.random() * (pitch[1] - pitch[0]);
         const gain = this.ctx.createGain();
         gain.gain.value = 0.5 + Math.random() * 0.5;
         const pan = this.ctx.createStereoPanner();
         pan.pan.value = Math.random() * 1.6 - 0.8;
-        source.connect(gain).connect(pan).connect(this.bus.zombies);
-        const growl = { source, gain };
-        this.growls.add(growl);
-        source.onended = () => this.growls.delete(growl);
+        source.connect(gain).connect(pan).connect(this.bus[call]);
+        const playing = { source, gain };
+        state.playing.add(playing);
+        source.onended = () => state.playing.delete(playing);
         source.start();
       }
-      this.scheduleGrowl();
+      this.schedule(call);
     }, delay * 1000);
   }
 
-  // Switching Zombies off silences them at once: the growl playing is cut (with a fade too
-  // short to hear, so it does not click) and no further one comes.
-  private stopGrowls() {
-    if (this.growlTimer) clearTimeout(this.growlTimer);
-    this.growlTimer = null;
-    this.growlRound++;
+  // Switching Zombies or Screams off silences them at once: the clip playing is cut (with a fade
+  // too short to hear, so it does not click) and no further one comes.
+  private silence(call: Call) {
+    const state = this.calls[call];
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = null;
+    state.round++;
     const t = this.ctx?.currentTime ?? 0;
-    for (const { source, gain } of this.growls) {
+    for (const { source, gain } of state.playing) {
       gain.gain.cancelScheduledValues(t);
       gain.gain.setTargetAtTime(0, t, 0.015);
       source.stop(t + 0.08);
     }
-    this.growls.clear();
+    state.playing.clear();
   }
 }
 

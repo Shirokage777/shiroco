@@ -118,11 +118,11 @@ test("New game and Sign out ask first, and Cancel keeps playing", async ({ page 
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test("the sound levers switch, stay switched, and narration loads", async ({ page }) => {
+test("the sound levers switch, stay switched, and narration and screams load", async ({ page }) => {
   const errors = watchErrors(page);
   await login(page);
   const levers = page.getByRole("switch");
-  await expect(levers).toHaveCount(5);
+  await expect(levers).toHaveCount(6);
   const lever = (name: string) => page.getByRole("switch", { name, exact: true });
 
   // Music and Intense music are linked: one switches the other off.
@@ -135,13 +135,13 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   await expect(lever("Intense music")).toHaveAttribute("aria-checked", "false");
   await press(lever("Music"));
 
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) {
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies", "Screams"]) {
     await expect(lever(name)).toHaveAttribute("aria-checked", "false");
     await press(lever(name));
     await expect(lever(name)).toHaveAttribute("aria-checked", "true");
   }
   await page.reload();
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) {
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies", "Screams"]) {
     await expect(lever(name)).toHaveAttribute("aria-checked", "true");
   }
   await expect(lever("Intense music")).toHaveAttribute("aria-checked", "false");
@@ -151,15 +151,18 @@ test("the sound levers switch, stay switched, and narration loads", async ({ pag
   // The Windows build of Safari's engine has no Web Audio (real Safari does), so the app plays
   // nothing there; only browsers that can play check that the narration loads.
   if (await page.evaluate(() => "AudioContext" in window)) {
+    // Screams were left on: the first one comes within seconds of the first tap after the reload.
+    const screamed = page.waitForResponse((r) => /\/sounds\/scream-\d-\d+\.mp3$/.test(r.url()), { timeout: 15_000 });
     const narration = page.waitForResponse((r) => /\/api\/narration\/[^/]+\/text$/.test(r.url()));
     await press(page.getByRole("button", { name: "Triggered", exact: true }));
     expect((await narration).status()).toBe(200);
+    expect((await screamed).status()).toBe(200);
   } else {
     await press(page.getByRole("button", { name: "Triggered", exact: true }));
   }
 
   // Switch everything off again: the next visitor of this browser starts in silence.
-  for (const name of ["Narrate", "Ambience", "Music", "Zombies"]) await press(lever(name));
+  for (const name of ["Narrate", "Ambience", "Music", "Zombies", "Screams"]) await press(lever(name));
   expect(errors).toEqual([]);
 });
 

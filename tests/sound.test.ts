@@ -1,8 +1,8 @@
 import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSession } from "@/lib/session";
-import { flip, growlDelay, narrationUrl, parseSettings } from "@/app/sound";
+import { callDelay, flip, growlDelay, narrationUrl, nextVoice, parseSettings, screamClips } from "@/app/sound";
 
 const SECRET = "test-secret-not-used-anywhere-else";
 let cookieValue: string | undefined;
@@ -17,7 +17,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("sound switches", () => {
   it("remember only real on/off values, and start all off", () => {
-    const off = { narrate: false, ambience: false, music: false, intense: false, zombies: false };
+    const off = { narrate: false, ambience: false, music: false, intense: false, zombies: false, screams: false };
     expect(parseSettings(null)).toEqual(off);
     expect(parseSettings("not json")).toEqual(off);
     expect(parseSettings('{"narrate":true,"ambience":"yes","music":true,"zombies":true}')).toEqual({
@@ -26,8 +26,10 @@ describe("sound switches", () => {
       music: true,
       intense: false,
       zombies: true,
+      screams: false,
     });
     expect(parseSettings('{"intense":true}').intense).toBe(true);
+    expect(parseSettings('{"screams":true}').screams).toBe(true);
   });
 
   it("let only one of Music and Intense music be on", () => {
@@ -51,10 +53,31 @@ describe("sound switches", () => {
     expect(growlDelay(0.999)).toBeLessThan(40);
   });
 
-  it("ships the ambience and growls the app plays", () => {
+  it("space the screams between 25 and 70 seconds, rarer than the growls", () => {
+    expect(callDelay("screams", 0)).toBe(25);
+    expect(callDelay("screams", 0.999)).toBeLessThan(70);
+  });
+
+  it("never pick the same voice twice running", () => {
+    for (let last = 0; last < 4; last++)
+      for (let r = 0; r < 1; r += 0.05) expect(nextVoice(4, last, r)).not.toBe(last);
+    expect(nextVoice(1, 0, 0.5)).toBe(0); // one voice only: it may repeat
+    // Every voice can come up.
+    expect(new Set([0, 0.3, 0.6, 0.9].map((r) => nextVoice(4, -1, r)))).toEqual(new Set([0, 1, 2, 3]));
+  });
+
+  it("ships the ambience, growls and screams the app plays, and credits each", () => {
     const files = readdirSync("public/sounds");
+    const sources = readFileSync("public/sounds/SOURCES.md", "utf8");
     expect(files).toContain("ambience-wind.mp3");
     for (let n = 1; n <= 7; n++) expect(files).toContain(`zombie-${n}.mp3`);
+    expect(screamClips).toHaveLength(18);
+    for (const url of screamClips) {
+      const name = url.replace("/sounds/", "");
+      expect(files).toContain(name);
+      expect(sources).toContain(name.replace(/-\d+\.mp3$/, ""));
+    }
+    expect(files.filter((f) => f.startsWith("scream-"))).toHaveLength(18);
   });
 });
 
