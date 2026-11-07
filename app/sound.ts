@@ -29,7 +29,10 @@ const LOOPS = {
   intense: { url: "/api/music/zombie-music-intense2", level: 0.5, bus: "music", instant: true }, // its intense version, likewise
 } as const;
 type Loop = keyof typeof LOOPS;
-const LEVEL = { zombies: 0.6, screams: 0.6, narration: 1 }; // growls a little lower (Sean, 2026-11-03)
+// Growls a little lower (Sean, 2026-11-03). Screams are made for the intense moments, so they are
+// set to be heard clearly over the Intense music: each about 2 dB louder than it (Sean, 2026-11-07).
+const LEVEL = { zombies: 0.6, screams: 2.4, narration: 1 };
+const MAKEUP_DB = 1.71; // what the browser's limiter adds to everything on its own (measured)
 const LOOP_FADE = 3; // seconds a loop crossfades from its end into its start
 const DUCK = 0.3; // ambience, music, growls and screams while the narrator speaks
 
@@ -45,6 +48,7 @@ const CALLS = {
     gap: [14, 40], // seconds from one growl's start to the next
     fromEnd: false,
     pitch: [0.9, 1.05], // growls vary a little in pitch
+    volume: [0.5, 1], // near and far
   },
   screams: {
     voices: [scream(1, 9), scream(2, 6), scream(3, 1), scream(4, 2)],
@@ -54,6 +58,7 @@ const CALLS = {
     gap: [1, 2],
     fromEnd: false,
     pitch: [1, 1], // voices stay natural
+    volume: [0.8, 1], // every scream clearly heard
   },
 } as const;
 type Call = keyof typeof CALLS;
@@ -237,10 +242,22 @@ class Sound {
       } catch {
         return false;
       }
+      // A safety limiter on the way out: screams overlapping each other over the music could go
+      // past full scale and crackle; the limiter holds those rare peaks just under it and leaves
+      // everything quieter untouched (its built-in 1.7 dB of make-up gain is taken off again).
+      const limiter = this.ctx.createDynamicsCompressor();
+      limiter.threshold.value = -3;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.002;
+      limiter.release.value = 0.15;
+      const out = this.ctx.createGain();
+      out.gain.value = 10 ** (-MAKEUP_DB / 20);
+      limiter.connect(out).connect(this.ctx.destination);
       const bus = (level: number) => {
         const gain = this.ctx!.createGain();
         gain.gain.value = level;
-        gain.connect(this.ctx!.destination);
+        gain.connect(limiter);
         return gain;
       };
       this.bus = {
@@ -363,7 +380,7 @@ class Sound {
       };
       if (!this.settings[call] || !this.ctx || !this.bus) return void (state.timer = null);
       if (this.ctx.state !== "running") return next(); // paused: nothing piling up for later
-      const { voices, pitch, fromEnd } = CALLS[call];
+      const { voices, pitch, volume, fromEnd } = CALLS[call];
       const voice = nextVoice(voices.length, state.last, Math.random(), new Set([...state.playing].map((p) => p.voice)));
       state.last = voice;
       const clips = voices[voice];
@@ -376,7 +393,7 @@ class Sound {
         source.buffer = buffer;
         source.playbackRate.value = pitch[0] + Math.random() * (pitch[1] - pitch[0]);
         const gain = this.ctx.createGain();
-        gain.gain.value = 0.5 + Math.random() * 0.5;
+        gain.gain.value = volume[0] + Math.random() * (volume[1] - volume[0]);
         const pan = this.ctx.createStereoPanner();
         pan.pan.value = Math.random() * 1.6 - 0.8;
         source.connect(gain).connect(pan).connect(this.bus[call]);
