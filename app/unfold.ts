@@ -66,7 +66,7 @@ export function unfold(card: HTMLElement, startHeight: number, flapClass: string
   const keyframes: Keyframe[] = [];
   stops.slice(0, -1).forEach((shown, i) => {
     keyframes.push({ offset: i / stages, clipPath: inset(shown) });
-    keyframes.push({ offset: (i + 1) / stages - 0.001, clipPath: inset(shown) });
+    keyframes.push({ offset: (i + 1) / stages - 0.002, clipPath: inset(shown) });
   });
   keyframes.push({ offset: 1, clipPath: "inset(-24px)" });
   const reveal = card.animate(keyframes, { duration: total, fill: "both" });
@@ -80,15 +80,19 @@ export function unfold(card: HTMLElement, startHeight: number, flapClass: string
     Object.assign(flap.style, { top: `${top * 100}%`, height: `${(stops[i + 1] - top) * 100}%`, animation: "none", opacity: "0" });
     host.append(flap);
     matchCard(flap, card);
+    // The first flap is already lying folded over the packet when the card appears.
+    const timing: KeyframeAnimationOptions = { duration: STAGE_MS, delay: i * STAGE_MS, fill: i === 0 ? "both" : "forwards" };
+    // It swings down for the whole stage and lands as the stage ends...
     flap.animate(
       [
-        { opacity: 1, transform: "perspective(1400px) rotateX(178deg)" },
-        { offset: 0.96, opacity: 1, transform: "perspective(1400px) rotateX(0deg)" },
-        { opacity: 0, transform: "perspective(1400px) rotateX(0deg)" },
+        { transform: "perspective(1400px) rotateX(178deg)", easing: "ease-in-out" },
+        { transform: "perspective(1400px) rotateX(0deg)" },
       ],
-      // The first flap is already lying folded over the packet when the card appears.
-      { duration: STAGE_MS, delay: i * STAGE_MS, easing: "ease-in-out", fill: i === 0 ? "both" : "forwards" },
+      timing,
     );
+    // ...and goes only then, the moment the card shows the part it covered: never a see-through
+    // gap (with the easing on the whole stage, it used to fade while the card was still closed).
+    flap.animate([{ opacity: 1 }, { offset: 0.999, opacity: 1 }, { opacity: 0 }], timing);
     return flap;
   });
 
