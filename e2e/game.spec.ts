@@ -278,9 +278,9 @@ test("Intense music starts at full volume at once, the normal music fades in", a
   await press(lever("Music")); // leave it off for the next run
 });
 
-// Screams start straight away and follow each other closely: 1-2 s of quiet after each one, never
-// on top of each other (Sean, 2026-11-07). Timed on the clips the page actually starts playing.
-test("Screams start at once and come 1-2 seconds apart", async ({ page }, info) => {
+// Screams start straight away, then a new one every 1-2 s, overlapping the ones still going, and
+// never the same person twice at once (Sean, 2026-11-07). Timed on the clips the page actually plays.
+test("Screams start at once, come every 1-2 seconds and overlap", async ({ page }, info) => {
   test.skip(info.project.name !== "chrome-laptop", "one engine is enough to time the sound");
   test.setTimeout(60_000);
   await page.addInitScript(() => {
@@ -297,13 +297,16 @@ test("Screams start at once and come 1-2 seconds apart", async ({ page }, info) 
   const switchedAt = await page.evaluate(() => performance.now() / 1000);
   await press(lever);
   const starts = () => page.evaluate(() => (window as unknown as { __starts: { at: number; length: number }[] }).__starts);
-  await expect.poll(async () => (await starts()).length, { timeout: 45_000 }).toBeGreaterThanOrEqual(3);
+  await expect.poll(async () => (await starts()).length, { timeout: 30_000 }).toBeGreaterThanOrEqual(6);
   const s = await starts();
   expect(s[0].at - switchedAt).toBeLessThan(1);
+  let overlaps = 0;
   for (let i = 1; i < s.length; i++) {
-    const quiet = s[i].at - (s[i - 1].at + s[i - 1].length);
-    expect(quiet).toBeGreaterThan(0.9);
-    expect(quiet).toBeLessThan(2.4);
+    const apart = s[i].at - s[i - 1].at;
+    expect(apart).toBeGreaterThan(0.9);
+    expect(apart).toBeLessThan(2.6); // 1-2 s, plus a moment to load a clip heard for the first time
+    if (s[i].at < s[i - 1].at + s[i - 1].length) overlaps++;
   }
+  expect(overlaps).toBeGreaterThan(0);
   await press(lever); // leave it off for the next run
 });

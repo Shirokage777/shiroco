@@ -48,10 +48,11 @@ const CALLS = {
   },
   screams: {
     voices: [scream(1, 9), scream(2, 6), scream(3, 1), scream(4, 2)],
-    // Straight away, then close together: 1-2 s of quiet after each scream (Sean, 2026-11-07).
+    // Straight away, then a new scream every 1-2 s, overlapping and mixing with the ones still
+    // going, like several people dying at once (Sean, 2026-11-07).
     first: [0, 0],
     gap: [1, 2],
-    fromEnd: true, // the gap counts from the end of the scream, so they never pile on each other
+    fromEnd: false,
     pitch: [1, 1], // voices stay natural
   },
 } as const;
@@ -95,13 +96,18 @@ export const callDelay = (call: Call, r: number) => {
 };
 export const growlDelay = (r: number) => callDelay("zombies", r);
 
-// The next voice to call: random, but never the same one twice running (when there is a choice).
-export function nextVoice(voices: number, last: number, r: number) {
-  const pick = Math.floor(r * voices);
-  return pick === last && voices > 1 ? (pick + 1) % voices : pick;
+// The next voice to call, at random among those not heard right now: never the same one twice
+// running, and never one that is still sounding, so a person never overlaps with themselves. When
+// every other voice is busy, any but the last will do.
+export function nextVoice(voices: number, last: number, r: number, busy: ReadonlySet<number> = new Set()) {
+  const all = Array.from({ length: voices }, (_, v) => v);
+  const free = all.filter((v) => v !== last && !busy.has(v));
+  const others = all.filter((v) => v !== last);
+  const choice = free.length ? free : others.length ? others : all;
+  return choice[Math.floor(r * choice.length)];
 }
 
-type Playing = { source: AudioBufferSourceNode; gain: GainNode };
+type Playing = { source: AudioBufferSourceNode; gain: GainNode; voice: number };
 type CallState = { timer: ReturnType<typeof setTimeout> | null; last: number; round: number; playing: Set<Playing> };
 
 class Sound {
@@ -358,7 +364,7 @@ class Sound {
       if (!this.settings[call] || !this.ctx || !this.bus) return void (state.timer = null);
       if (this.ctx.state !== "running") return next(); // paused: nothing piling up for later
       const { voices, pitch, fromEnd } = CALLS[call];
-      const voice = nextVoice(voices.length, state.last, Math.random());
+      const voice = nextVoice(voices.length, state.last, Math.random(), new Set([...state.playing].map((p) => p.voice)));
       state.last = voice;
       const clips = voices[voice];
       const round = state.round;
@@ -374,7 +380,7 @@ class Sound {
         const pan = this.ctx.createStereoPanner();
         pan.pan.value = Math.random() * 1.6 - 0.8;
         source.connect(gain).connect(pan).connect(this.bus[call]);
-        const playing = { source, gain };
+        const playing = { source, gain, voice };
         state.playing.add(playing);
         source.onended = () => state.playing.delete(playing);
         source.start();

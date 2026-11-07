@@ -64,6 +64,10 @@ describe("sound switches", () => {
     expect(nextVoice(1, 0, 0.5)).toBe(0); // one voice only: it may repeat
     // Every voice can come up.
     expect(new Set([0, 0.3, 0.6, 0.9].map((r) => nextVoice(4, -1, r)))).toEqual(new Set([0, 1, 2, 3]));
+    // Voices still sounding are left out while others are free, so nobody overlaps with themselves.
+    for (let r = 0; r < 1; r += 0.05) expect(nextVoice(4, 0, r, new Set([1, 2]))).toBe(3);
+    // All others busy: any voice but the last.
+    for (let r = 0; r < 1; r += 0.05) expect(nextVoice(4, 0, r, new Set([1, 2, 3]))).not.toBe(0);
   });
 
   it("ships the ambience, growls and screams the app plays, and credits each", () => {
