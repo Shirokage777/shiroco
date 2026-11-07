@@ -90,7 +90,7 @@ describe("narration", () => {
 describe("private music", () => {
   it("is kept out of git and the public folder", () => {
     expect(() => execSync("git check-ignore -q data/music/zombie-music.mp3")).not.toThrow();
-    expect(() => execSync("git check-ignore -q data/music/zombie-music-intense.mp3")).not.toThrow();
+    expect(() => execSync("git check-ignore -q data/music/zombie-music-intense2.mp3")).not.toThrow();
     expect(readdirSync("public/sounds").filter((f) => /music/.test(f))).toEqual([]);
   });
 
@@ -101,7 +101,7 @@ describe("private music", () => {
     cookieValue = await createSession("sean", SECRET);
     expect((await ask("..%2F..%2Fcards")).status).toBe(404);
     expect((await ask("no-such-track")).status).toBe(404);
-    for (const track of ["zombie-music", "zombie-music-intense"]) {
+    for (const track of ["zombie-music", "zombie-music-intense2"]) {
       if (!existsSync(`data/music/${track}.mp3`)) continue;
       const res = await ask(track);
       expect(res.status).toBe(200);

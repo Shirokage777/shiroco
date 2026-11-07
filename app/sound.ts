@@ -19,7 +19,7 @@ const PARTNER: Partial<Record<SoundSwitch, SoundSwitch>> = { music: "intense", i
 const LOOPS = {
   ambience: { url: "/sounds/ambience-wind.mp3", level: 0.75, bus: "ambience", instant: false }, // a little under its own volume
   music: { url: "/api/music/zombie-music", level: 0.5, bus: "music", instant: false }, // Sean's own track, private (login only)
-  intense: { url: "/api/music/zombie-music-intense", level: 0.5, bus: "music", instant: true }, // its intense version, likewise
+  intense: { url: "/api/music/zombie-music-intense2", level: 0.5, bus: "music", instant: true }, // its intense version, likewise
 } as const;
 type Loop = keyof typeof LOOPS;
 const ZOMBIES = Array.from({ length: 7 }, (_, i) => `/sounds/zombie-${i + 1}.mp3`);

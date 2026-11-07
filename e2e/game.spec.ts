@@ -249,7 +249,7 @@ test("Intense music starts at full volume at once, the normal music fades in", a
   await login(page);
 
   // While Music is on, the intense track is loaded ahead.
-  const intenseLoaded = page.waitForResponse((r) => r.url().endsWith("/api/music/zombie-music-intense"));
+  const intenseLoaded = page.waitForResponse((r) => r.url().endsWith("/api/music/zombie-music-intense2"));
   await press(lever("Music"));
   expect((await intenseLoaded).status()).toBe(200);
   await page.waitForTimeout(1000);
