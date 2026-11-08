@@ -75,3 +75,19 @@ End-to-end tests (`e2e/`): a whole game in Chrome's and Safari's engines at lapt
 sizes, checking that nothing scrolls sideways and every button is big enough to tap. They need
 real browsers, so they run on your own computer before you push (Vercel's build has no browsers).
 They start their own server with a test-only account; no real login is needed.
+
+## The builder agent
+
+The app comes with the AI agent it is built with. Install [Claude Code](https://code.claude.com),
+start it in this folder, and the agent is ready: it knows the app, builds and tests it, deploys
+through GitHub and Vercel (preview first, live only after your OK), and answers Dead of Winter rules
+questions.
+
+- `CLAUDE.md`: who the agent is, its scope and how it works.
+- `.claude/rules/`: its rules (nothing goes live without your click; secrets stay out of the repo).
+- `agent/privacy.md`: the privacy rules every build step keeps.
+- `agent/preferences.md`: the design and code preferences learned while building this app. The
+  agent adds your own corrections here, so it learns your taste too.
+
+`scripts/export-agent.mjs` is how the original owner refreshes `agent/` from their private working
+copy; it refuses to export anything personal. In your own copy you don't need it.
