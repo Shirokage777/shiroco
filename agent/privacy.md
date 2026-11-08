@@ -6,7 +6,7 @@ The owner's Dead of Winter Crossroads Companion web app holds the official Cross
 
 ## Must hold in every build step
 
-- **Login first, nothing before it.** Hosted on the owner's own domain. Without a valid login nobody sees anything: no app, no card data, no hint of what the site is. The login page itself names nothing (no game name, no title, no description).
+- **Login first, nothing before it.** Hosted on Vercel at `shiroco.vercel.app` (no own domain: change request 1, 2026-11-02). Without a valid login nobody sees anything: no app, no card data, no hint of what the site is. The login page itself names nothing (no game name, no title, no description).
 - **Neutral name and address.** The site runs as **shiroco** (`shiroco.vercel.app`, Vercel project `shiroco`), the owner's nickname plus "co", reusable for other things. No address, page title or project name visible to visitors says "crossroads", "dead of winter" or anything else that hints at the game; "Crossroads Companion" was the name of the official app. The owner's decision 2026-10-29.
 - **Card data only behind the login.** Served by an authenticated endpoint, never as a public static file (no `cards.json` reachable by URL).
 - **Search engines out, added automatically.** `<meta name="robots" content="noindex, nofollow">` on every page, an `X-Robots-Tag: noindex, nofollow` header on every response, and a `robots.txt` that disallows everything.
