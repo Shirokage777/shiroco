@@ -10,6 +10,20 @@ import SoundBox from "./sound-box";
 import Table from "./table";
 import TornEdges from "./torn-edges";
 import styles from "./page.module.css";
+import type { Metadata } from "next";
+
+// The zombie stamp icon (Sean, 2026-11-09): browser tab, bookmarks and the iPhone home screen.
+// Only this page links it, and the files are served only after login (middleware.ts), so the
+// login page gives nothing away; bookmarks and home-screen icons are made while logged in.
+export const metadata: Metadata = {
+  icons: {
+    icon: [
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
+  },
+};
 
 // Abandoned bunker look (Sean's pick, 2026-10-30): concrete, rust, hazard stripes, typewriter notices.
 // Only this page carries it; the login page stays neutral.

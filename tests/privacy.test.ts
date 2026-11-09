@@ -16,8 +16,9 @@ describe("card data stays private", () => {
   });
 
   it("has no image of the game in any file that would be committed", () => {
-    // The only pictures allowed: our own textures, rendered from SVG by scripts/render-textures.mjs.
-    const ours = /^public\/(bunker-wall\.webp|textures\/paper-\d+\.webp)$/;
+    // The only pictures allowed: our own textures, rendered from SVG by scripts/render-textures.mjs,
+    // and our own app icon (a zombie stamp drawn for this app, on those textures).
+    const ours = /^public\/(bunker-wall\.webp|textures\/paper-\d+\.webp|icons\/(icon-(32|192)|apple-touch-icon)\.png)$/;
     const images = repoFiles().filter((f) => /\.(png|jpe?g|webp|gif|heic)$/i.test(f) && !ours.test(f));
     expect(images).toEqual([]);
   });

@@ -54,6 +54,25 @@ test("the login page names nothing about the game", async ({ page }) => {
   await checkScreen(page, "login");
 });
 
+test("the app icon shows only after login: tab, bookmark and home screen", async ({ page, request }) => {
+  const icons = ["/icons/icon-32.png", "/icons/icon-192.png", "/icons/apple-touch-icon.png"];
+  // Before login: the login page links no icon, and the icon files are not served.
+  await page.goto("/login");
+  await expect(page.locator('link[rel~="icon"], link[rel="apple-touch-icon"]')).toHaveCount(0);
+  for (const url of icons) {
+    const res = await request.get(url, { maxRedirects: 0 });
+    expect(res.status(), url).toBe(307);
+  }
+  // After login: the table page links them, and they load as pictures.
+  await login(page);
+  for (const url of icons) await expect(page.locator(`head link[href="${url}"]`)).toHaveCount(1);
+  for (const url of icons) {
+    const res = await page.request.get(url);
+    expect(res.status(), url).toBe(200);
+    expect(res.headers()["content-type"]).toBe("image/png");
+  }
+});
+
 test("a full game: draw, reveal, choose, change your mind, done", async ({ page }) => {
   const errors = watchErrors(page);
   await login(page);

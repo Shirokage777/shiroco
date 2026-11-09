@@ -3,7 +3,7 @@ import { sessionSecret } from "@/lib/secret";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 // Without a valid session nothing is served except the login itself (privacy requirement).
-const OPEN = ["/login", "/api/login", "/robots.txt", "/favicon.ico"];
+const OPEN = ["/login", "/api/login", "/robots.txt"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
