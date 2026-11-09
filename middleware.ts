@@ -2,12 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { sessionSecret } from "@/lib/secret";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
-// Without a valid session nothing is served except the login itself (privacy requirement).
+// Without a valid session nothing is served except the login itself (privacy requirement), and
+// the app icon files: the iPhone fetches the home-screen icon in the background without the
+// login cookie (Sean's choice, 2026-11-09). The login page still links no icon.
 const OPEN = ["/login", "/api/login", "/robots.txt"];
+const OPEN_PREFIX = ["/_next/static/", "/icons/"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (OPEN.includes(pathname) || pathname.startsWith("/_next/static/")) return NextResponse.next();
+  if (OPEN.includes(pathname) || OPEN_PREFIX.some((p) => pathname.startsWith(p))) return NextResponse.next();
 
   const user = await verifySession(request.cookies.get(SESSION_COOKIE)?.value, sessionSecret());
   if (user) return NextResponse.next();

@@ -13,8 +13,8 @@ import styles from "./page.module.css";
 import type { Metadata } from "next";
 
 // The zombie stamp icon (Sean, 2026-11-09): browser tab, bookmarks and the iPhone home screen.
-// Only this page links it, and the files are served only after login (middleware.ts), so the
-// login page gives nothing away; bookmarks and home-screen icons are made while logged in.
+// Only this page links it, so the login page gives nothing away. The files themselves load without
+// login (middleware.ts), because the iPhone fetches the home-screen icon without the login cookie.
 export const metadata: Metadata = {
   icons: {
     icon: [

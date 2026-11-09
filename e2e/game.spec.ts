@@ -54,23 +54,22 @@ test("the login page names nothing about the game", async ({ page }) => {
   await checkScreen(page, "login");
 });
 
-test("the app icon shows only after login: tab, bookmark and home screen", async ({ page, request }) => {
+test("the app icon: linked only after login, and the files load without login for the iPhone", async ({ page, playwright }) => {
   const icons = ["/icons/icon-32.png", "/icons/icon-192.png", "/icons/apple-touch-icon.png"];
-  // Before login: the login page links no icon, and the icon files are not served.
+  // The login page links no icon.
   await page.goto("/login");
   await expect(page.locator('link[rel~="icon"], link[rel="apple-touch-icon"]')).toHaveCount(0);
+  // The iPhone fetches the home-screen icon without the login cookie: it must still load.
+  const bare = await playwright.request.newContext({ baseURL: new URL(page.url()).origin });
   for (const url of icons) {
-    const res = await request.get(url, { maxRedirects: 0 });
-    expect(res.status(), url).toBe(307);
-  }
-  // After login: the table page links them, and they load as pictures.
-  await login(page);
-  for (const url of icons) await expect(page.locator(`head link[href="${url}"]`)).toHaveCount(1);
-  for (const url of icons) {
-    const res = await page.request.get(url);
+    const res = await bare.get(url, { maxRedirects: 0 });
     expect(res.status(), url).toBe(200);
     expect(res.headers()["content-type"]).toBe("image/png");
   }
+  await bare.dispose();
+  // After login the table page links them.
+  await login(page);
+  for (const url of icons) await expect(page.locator(`head link[href="${url}"]`)).toHaveCount(1);
 });
 
 test("a full game: draw, reveal, choose, change your mind, done", async ({ page }) => {
