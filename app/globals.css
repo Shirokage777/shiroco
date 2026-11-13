@@ -55,3 +55,13 @@ a {
     color-scheme: dark;
   }
 }
+
+/* iPhone started from the home screen: iOS can leave a strip below the page for a moment
+   (full-screen.ts); it shows this colour, the wall's, never white. Browser tabs and the iPad are
+   unchanged. Keep the media query the same as PHONE_FULL_SCREEN in full-screen.ts. */
+@media (display-mode: standalone) and (max-width: 600px), (display-mode: standalone) and (max-height: 600px) {
+  html,
+  body {
+    background: #3a3a37;
+  }
+}
