@@ -1,44 +1,49 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it, vi } from "vitest";
-import { PHONE_FULL_SCREEN, settleFullScreen } from "@/app/full-screen";
+import { describe, expect, it } from "vitest";
+import { PHONE_FULL_SCREEN, SCREEN_HEIGHT_SCRIPT, screenHeight } from "@/app/full-screen";
 
-const fakeWindow = (matches: boolean, scrollY = 0) => {
-  const frames: (() => void)[] = [];
-  return {
-    matchMedia: vi.fn(() => ({ matches }) as MediaQueryList),
-    scrollTo: vi.fn(),
-    requestAnimationFrame: vi.fn((cb: FrameRequestCallback) => (frames.push(() => cb(0)), 1)),
-    scrollY,
-    frames,
+// Runs the inline head script against a fake phone and returns the --screen-h it sets.
+function run(opts: { fullScreen: boolean; portrait: boolean; screen: { width: number; height: number } }) {
+  const style = new Map<string, string>();
+  const listeners: string[] = [];
+  const window = {
+    matchMedia: (q: string) => ({ matches: q === PHONE_FULL_SCREEN ? opts.fullScreen : opts.portrait }),
+    screen: opts.screen,
+    addEventListener: (event: string) => listeners.push(event),
   };
-};
+  const document = {
+    documentElement: {
+      style: { setProperty: (k: string, v: string) => style.set(k, v), removeProperty: (k: string) => style.delete(k) },
+    },
+  };
+  new Function("window", "document", SCREEN_HEIGHT_SCRIPT)(window, document);
+  return { value: style.get("--screen-h"), listeners };
+}
 
-describe("iPhone full screen: no white bar at the bottom", () => {
-  it("nudges the page one pixel and back on a phone started from the home screen", () => {
-    const win = fakeWindow(true);
-    expect(settleFullScreen(win as never)).toBe(true);
-    expect(win.matchMedia).toHaveBeenCalledWith(PHONE_FULL_SCREEN);
-    expect(win.scrollTo).toHaveBeenLastCalledWith(0, 1);
-    win.frames.forEach((f) => f());
-    expect(win.scrollTo).toHaveBeenLastCalledWith(0, 0);
+const iPhone11 = { width: 414, height: 896 };
+
+describe("iPhone full screen: the page fills the real screen, no bar at the bottom", () => {
+  it("sizes the page to an iPhone 11's screen at launch, upright and on its side", () => {
+    expect(run({ fullScreen: true, portrait: true, screen: iPhone11 }).value).toBe("896px");
+    expect(run({ fullScreen: true, portrait: false, screen: iPhone11 }).value).toBe("414px");
+    expect(run({ fullScreen: true, portrait: true, screen: iPhone11 }).listeners).toEqual(["resize", "orientationchange"]);
   });
 
-  it("leaves the iPad, browser tabs and a scrolled page alone", () => {
-    for (const win of [fakeWindow(false), fakeWindow(true, 200)]) {
-      expect(settleFullScreen(win as never)).toBe(false);
-      expect(win.scrollTo).not.toHaveBeenCalled();
+  it("leaves the iPad and browser tabs alone", () => {
+    expect(run({ fullScreen: false, portrait: true, screen: iPhone11 }).value).toBeUndefined();
+  });
+
+  it("takes the longer screen side as the height when upright", () => {
+    expect(screenHeight({ width: 896, height: 414 }, true)).toBe(896);
+    expect(screenHeight({ width: 414, height: 896 }, false)).toBe(414);
+  });
+
+  it("uses that height in the page and the login, with the same phone-only rule", () => {
+    for (const file of ["app/page.module.css", "app/login/login.module.css"]) {
+      const css = readFileSync(file, "utf8");
+      expect(css, file).toContain(`@media ${PHONE_FULL_SCREEN} {`);
+      expect(css, file).toContain("min-height: var(--screen-h, 100vh);");
     }
-  });
-
-  it("matches phones only, in full screen, in either orientation", () => {
-    expect(PHONE_FULL_SCREEN).toBe(
-      "(display-mode: standalone) and (max-width: 600px), (display-mode: standalone) and (max-height: 600px)",
-    );
-  });
-
-  it("paints the wall, never white, behind the strip, with the same phone-only rule", () => {
-    for (const file of ["app/globals.css", "app/page.module.css"]) {
-      expect(readFileSync(file, "utf8"), file).toContain(`@media ${PHONE_FULL_SCREEN} {`);
-    }
+    expect(readFileSync("app/globals.css", "utf8")).toContain(`@media ${PHONE_FULL_SCREEN} {`);
   });
 });

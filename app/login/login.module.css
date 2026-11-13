@@ -60,3 +60,10 @@
   font-size: 14px;
   color: #f0a08a;
 }
+
+/* iPhone started from the home screen: the real screen height (app/full-screen.ts). */
+@media (display-mode: standalone) and (max-width: 600px), (display-mode: standalone) and (max-height: 600px) {
+  .page {
+    min-height: var(--screen-h, 100vh);
+  }
+}

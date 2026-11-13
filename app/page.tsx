@@ -5,7 +5,6 @@ import "@fontsource/courier-prime/latin-400.css";
 import "@fontsource/courier-prime/latin-400-italic.css";
 import "@fontsource/courier-prime/latin-700.css";
 import "@fontsource/courier-prime/latin-700-italic.css";
-import FullScreenFix from "./full-screen-fix";
 import SignOut from "./sign-out";
 import SoundBox from "./sound-box";
 import Table from "./table";
@@ -47,8 +46,6 @@ export default function Home() {
     <div className={styles.bunker}>
       {/* Torn outlines for the paper notes (torn-edges.tsx). */}
       <TornEdges />
-      {/* iPhone home-screen app: no white bar at the bottom (full-screen.ts). */}
-      <FullScreenFix />
       <div className={styles.hazard} aria-hidden="true" />
       <main className={styles.page}>
         <div className={styles.soundRow}>

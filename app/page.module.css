@@ -126,10 +126,10 @@
   }
 }
 
-/* iPhone started from the home screen: behind the table the strip iOS can leave below the page
-   (full-screen.ts) shows the bunker wall itself, lined up with the page's wall. */
+/* iPhone started from the home screen: as tall as the phone's real screen, not iOS's too-short
+   first guess (full-screen.ts), so there is no bar at the bottom. */
 @media (display-mode: standalone) and (max-width: 600px), (display-mode: standalone) and (max-height: 600px) {
-  :global(html):has(.bunker) {
-    background: #4a4844 url("/bunker-wall.webp") center top / 1000px 875px;
+  .bunker {
+    min-height: var(--screen-h, 100vh);
   }
 }

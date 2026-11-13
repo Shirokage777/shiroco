@@ -93,6 +93,10 @@ test("full screen from the home screen: set up after login only, manifest loads 
   const viewport = await page.locator('meta[name="viewport"]').getAttribute("content");
   expect(viewport).toContain("width=device-width");
   expect(viewport).toContain("viewport-fit=cover");
+  // The iPhone screen-height script is in the head, and leaves a normal browser tab alone.
+  const inHead = await page.evaluate(() => [...document.head.querySelectorAll("script")].some((s) => s.text.includes("--screen-h")));
+  expect(inHead).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--screen-h"))).toBe("");
 });
 
 test("a full game: draw, reveal, choose, change your mind, done", async ({ page }) => {
