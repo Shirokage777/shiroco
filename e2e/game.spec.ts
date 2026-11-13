@@ -72,6 +72,29 @@ test("the app icon: linked only after login, and the files load without login fo
   for (const url of icons) await expect(page.locator(`head link[href="${url}"]`)).toHaveCount(1);
 });
 
+test("full screen from the home screen: set up after login only, manifest loads without login", async ({ page, playwright }) => {
+  const fullScreen = 'link[rel="manifest"], meta[name="apple-mobile-web-app-capable"], meta[name="mobile-web-app-capable"]';
+  await page.goto("/login");
+  await expect(page.locator(fullScreen)).toHaveCount(0);
+  // The phone may fetch the manifest without the login cookie.
+  const bare = await playwright.request.newContext({ baseURL: new URL(page.url()).origin });
+  const res = await bare.get("/manifest.webmanifest", { maxRedirects: 0 });
+  expect(res.status()).toBe(200);
+  const manifest = await res.json();
+  await bare.dispose();
+  expect(manifest).toMatchObject({ display: "standalone", start_url: "/", scope: "/", name: "shiroco" });
+  expect(JSON.stringify(manifest)).not.toMatch(/dead of winter|crossroads|zombie/i);
+  // After login the table page asks for full screen (manifest plus the tag iOS 17 reads),
+  // keeps the normal page width, and reaches under the clock and the home bar.
+  await login(page);
+  await expect(page.locator('head link[rel="manifest"]')).toHaveAttribute("href", "/manifest.webmanifest");
+  await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
+  await expect(page.locator('meta[name="apple-mobile-web-app-status-bar-style"]')).toHaveAttribute("content", "black-translucent");
+  const viewport = await page.locator('meta[name="viewport"]').getAttribute("content");
+  expect(viewport).toContain("width=device-width");
+  expect(viewport).toContain("viewport-fit=cover");
+});
+
 test("a full game: draw, reveal, choose, change your mind, done", async ({ page }) => {
   const errors = watchErrors(page);
   await login(page);

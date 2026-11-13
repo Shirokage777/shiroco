@@ -16,6 +16,9 @@
   --chalk-dim: #b9b5aa;
 
   min-height: 100dvh;
+  /* Started from the home screen the page runs full screen, under the clock and the home bar;
+     this keeps everything clear of them (zero in a normal browser tab). */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   display: grid;
   grid-template-rows: auto 1fr auto auto;
   color: var(--chalk);

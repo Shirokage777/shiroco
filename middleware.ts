@@ -4,8 +4,9 @@ import { SESSION_COOKIE, verifySession } from "@/lib/session";
 
 // Without a valid session nothing is served except the login itself (privacy requirement), and
 // the app icon files: the iPhone fetches the home-screen icon in the background without the
-// login cookie (Sean's choice, 2026-11-09). The login page still links no icon.
-const OPEN = ["/login", "/api/login", "/robots.txt"];
+// login cookie (Sean's choice, 2026-11-09), and the manifest that makes the home-screen app open
+// full screen (2026-11-13; it names only "shiroco" and the icons). The login page links neither.
+const OPEN = ["/login", "/api/login", "/robots.txt", "/manifest.webmanifest"];
 const OPEN_PREFIX = ["/_next/static/", "/icons/"];
 
 export async function middleware(request: NextRequest) {

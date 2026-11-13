@@ -1,0 +1,14 @@
+{
+  "name": "shiroco",
+  "short_name": "shiroco",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#3a3a37",
+  "theme_color": "#3a3a37",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
